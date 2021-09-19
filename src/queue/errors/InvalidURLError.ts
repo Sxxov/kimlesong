@@ -1,1 +1,3 @@
-export class InvalidURLError extends Error {}
+import { ClientError } from '../../resources/errors/ClientError.js';
+
+export class InvalidURLError extends ClientError {}
