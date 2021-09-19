@@ -27,9 +27,15 @@ export class ExtendableStore<T = unknown> extends Store<T> {
 				value: descriptorValue,
 			} = descriptors[descriptorKey];
 
-			descriptors[descriptorKey].value =
-				(descriptorValue as (...args: any) => any)?.bind?.(this.value)
-				?? descriptorValue;
+			if (
+				!('get' in descriptors[descriptorKey])
+				&& !('set' in descriptors[descriptorKey])
+			) {
+				descriptors[descriptorKey].value =
+					(descriptorValue as (...args: any) => any)?.bind?.(
+						this.value,
+					) ?? descriptorValue;
+			}
 
 			Object.defineProperty(
 				this,
