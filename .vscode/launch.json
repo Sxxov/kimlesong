@@ -11,10 +11,19 @@
 			"skipFiles": [
 				"<node_internals>/**"
 			],
-			"program": "${file}",
-			"outFiles": [
-				"${workspaceFolder}/dist/**/*.js"
-			]
+			"args": ["src/index"],
+			"runtimeArgs": [
+				"--require",
+				"@nextools/suppress-experimental-warnings",
+				"--loader",
+				"ts-node/esm",
+				"--conditions",
+				"development",
+				"--experimental-json-modules",
+				"--experimental-specifier-resolution=node",
+				"--nolazy",
+			],
+			"outputCapture": "std",
 		},
 		{
 			"type": "node",
