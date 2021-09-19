@@ -1,5 +1,4 @@
-import type { TextBasedChannels } from 'discord.js';
-import type { ContinuablePlaylistURL } from 'youtube-moosick/dist/cjs/resources/resultTypes';
+import type { ContinuablePlaylistURL } from 'youtube-moosick';
 import type { QueueItem } from '../queue/QueueItem.js';
 import {
 	Store,
@@ -46,7 +45,7 @@ export class States {
 
 	@contextual public static guildIdToQueuedPlaylists: MapStore<
 		string,
-		ContinuablePlaylistURL
+		ArrayStore<ContinuablePlaylistURL>
 	> = new MapStore();
 
 	@contextual public static guildIdToQueueMoreTimeout: MapStore<
@@ -55,9 +54,9 @@ export class States {
 	> = new MapStore();
 
 	// for if the server crashes, it can reply with an error instead of disappearing
-	@contextual public static guildIdToQueueChannel: MapStore<
+	@contextual public static guildIdToQueueChannelId: MapStore<
 		string,
-		TextBasedChannels
+		string
 	> = new MapStore();
 
 	@contextual public static guildIds: ArrayStore<string> | undefined =
