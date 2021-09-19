@@ -134,12 +134,12 @@ export class ArrayStore<T = unknown> extends ExtendableStore<T[]> {
 		start: number,
 		items: (T | undefined)[],
 		arr = new Array<T | undefined>(
-			length > this.value.length ? length : this.value.length,
+			start > this.value.length ? start : this.value.length,
 		),
 	) {
 		if (!(items instanceof Array)) return arr;
 
-		const increment = Math.sign(start);
+		const increment = Math.sign(start) || 1;
 
 		if (Object.is(start, -0) && items.length > 0) {
 			// @ts-expect-error force assign -0
@@ -147,8 +147,8 @@ export class ArrayStore<T = unknown> extends ExtendableStore<T[]> {
 			start += increment;
 		}
 
-		for (let i = start, l = items.length; i < l; i += increment) {
-			arr[i] = items[i];
+		for (let i = 0, l = items.length * increment; i < l; i += increment) {
+			arr[i + start] = items[i];
 		}
 
 		return arr;
