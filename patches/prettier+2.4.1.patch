@@ -1,0 +1,26 @@
+diff --git a/node_modules/prettier/index.js b/node_modules/prettier/index.js
+index b7a69f9..87e4428 100644
+--- a/node_modules/prettier/index.js
++++ b/node_modules/prettier/index.js
+@@ -41723,8 +41723,10 @@ function printBinaryishExpressions(path, print, options, isNested, isInsideParen
+     }
+ 
+     const shouldInline = shouldInlineLogicalExpression$1(node);
+-    const lineBeforeOperator = (node.operator === "|>" || node.type === "NGPipeExpression" || node.operator === "|" && options.parser === "__vue_expression") && !hasLeadingOwnLineComment$3(options.originalText, node.right);
+-    const operator = node.type === "NGPipeExpression" ? "|" : node.operator;
++    const lineBeforeOperator = !hasLeadingOwnLineComment(
++      options.originalText,
++      node.right
++    ); const operator = node.type === "NGPipeExpression" ? "|" : node.operator;
+     const rightSuffix = node.type === "NGPipeExpression" && node.arguments.length > 0 ? group$A(indent$t([softline$q, ": ", join$r([softline$q, ":", ifBreak$m(" ")], path.map(print, "arguments").map(arg => align$4(2, group$A(arg))))])) : "";
+     const right = shouldInline ? [operator, " ", print("right"), rightSuffix] : [lineBeforeOperator ? line$w : "", operator, lineBeforeOperator ? " " : line$w, print("right"), rightSuffix]; // If there's only a single binary expression, we want to create a group
+     // in order to avoid having a small right part like -1 be on its own line.
+@@ -41732,7 +41734,7 @@ function printBinaryishExpressions(path, print, options, isNested, isInsideParen
+     const parent = path.getParentNode();
+     const shouldBreak = hasComment$g(node.left, CommentCheckFlags$d.Trailing | CommentCheckFlags$d.Line);
+     const shouldGroup = shouldBreak || !(isInsideParenthesis && node.type === "LogicalExpression") && parent.type !== node.type && node.left.type !== node.type && node.right.type !== node.type;
+-    parts.push(lineBeforeOperator ? "" : " ", shouldGroup ? group$A(right, {
++    parts.push(lineBeforeOperator && !shouldInline ? "" : " ", shouldGroup ? group$A(right, {
+       shouldBreak
+     }) : right); // The root comments are already printed, but we need to manually print
+     // the other ones since we don't call the normal print on BinaryExpression,

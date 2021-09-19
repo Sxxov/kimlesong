@@ -1,0 +1,81 @@
+{
+	// Use IntelliSense to learn about possible attributes.
+	// Hover to view descriptions of existing attributes.
+	// For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+	"version": "0.2.0",
+	"configurations": [
+		{
+			"type": "node",
+			"request": "launch",
+			"name": "Launch Program",
+			"skipFiles": [
+				"<node_internals>/**"
+			],
+			"program": "${file}",
+			"outFiles": [
+				"${workspaceFolder}/dist/**/*.js"
+			]
+		},
+		{
+			"type": "node",
+			"request": "launch",
+			"name": "Test, all",
+			"skipFiles": [
+				"<node_internals>/**"
+			],
+			"args": ["test/index"],
+			"runtimeArgs": [
+				"--require",
+				"@nextools/suppress-experimental-warnings",
+				"--loader",
+				"ts-node/esm",
+				"--conditions",
+				"development",
+				"--experimental-json-modules",
+				"--experimental-specifier-resolution=node",
+				"--nolazy",
+			],
+			"env": {
+				"DEBUG": "*"
+			},
+			"outputCapture": "std",
+		},
+		{
+			"type": "node",
+			"request": "launch",
+			"name": "Test, individual",
+			"skipFiles": [
+				"<node_internals>/**"
+			],
+			"outFiles": [],
+			"runtimeArgs": [
+				"--require",
+				"@nextools/suppress-experimental-warnings",
+				"--loader",
+				"ts-node/esm",
+				"--conditions",
+				"development",
+				"--experimental-json-modules",
+				"--experimental-specifier-resolution=node",
+				"--nolazy",
+			],
+			"args": [
+				"test/index",
+				"/t",
+				"${fileBasenameNoExtension}",
+			],
+			"env": {
+				"DEBUG": "*"
+			},
+			"outputCapture": "std",
+		}
+	],
+	"inputs": [
+		{
+			"id": "testArgs",
+			"type": "promptString",
+			"description": "Test glob",
+			"default": "*",
+		}
+	],
+}

@@ -1,0 +1,35 @@
+module.exports = {
+	parser: '@typescript-eslint/parser',
+	parserOptions: {
+		ecmaVersion: 2020,
+		sourceType: 'module',
+	},
+	extends: [
+		'xo',
+		'xo-typescript',
+		'prettier',
+		'plugin:prettier/recommended',
+	],
+	rules: {
+		'@typescript-eslint/no-explicit-any': 'off',
+		'@typescript-eslint/no-empty-function': 'off',
+		'@typescript-eslint/no-extraneous-class': 'off',
+		'@typescript-eslint/prefer-readonly': 'off',
+		'@typescript-eslint/no-extraneous-class': 'off',
+		'@typescript-eslint/member-ordering': 'off',
+		'@typescript-eslint/array-type': ['error', { default: 'array' }],
+		'@typescript-eslint/no-empty-function': 'off',
+		'@typescript-eslint/no-non-null-assertion': 'off',
+		'@typescript-eslint/dot-notation': ['error', {
+			allowPrivateClassPropertyAccess: true,
+			allowProtectedClassPropertyAccess: true,
+			allowIndexSignaturePropertyAccess: true,
+		}],
+		'@typescript-eslint/no-this-alias': 'off',
+		'capitalized-comments': 'off',
+		'accessor-pairs': 'off',
+		'no-eq-null': 'off',
+		eqeqeq: ['error', 'always', { null: 'ignore' }],
+		'no-await-in-loop': 'off',
+	},
+};
