@@ -1,6 +1,6 @@
-import assert from 'assert';
+import './env.js';
 import { ClientSingleton } from './client/ClientSingleton.js';
+import { CrashHandlerSingleton } from './client/CrashHandlerSingleton.js';
 
-assert(process.env.TOKEN);
-
+CrashHandlerSingleton.register();
 await ClientSingleton.client.login(process.env.TOKEN);
