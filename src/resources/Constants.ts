@@ -7,8 +7,18 @@ export const enum Constants {
 	SPOTIFY_PATHNAME_ALBUM = '/album',
 
 	YOUTUBE_HOSTNAME = 'youtube.com',
+	YOUTUBE_HOSTNAME_WWW = 'www.youtube.com',
 	YOUTUBE_PATHNAME_SONG = '/watch',
 	YOUTUBE_PATHNAME_PLAYLIST = '/playlist',
 
 	PLAYLIST_CONTENT_LIMIT = 100,
+
+	EMBED_COLOUR = '#ff8585',
+	EMBED_AUTHOR_NAME = 'kimlesong',
+	EMBED_AUTHOR_IMAGE = 'https://cdn.discordapp.com/app-icons/889171586760998942/cf3bae7e5db6462329a454dc0ecd3b42.png?size=512',
+	EMBED_AUTHOR_URL = 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+
+	SLASH_ARGUMENT_NAME = 'stuff',
+
+	COMMAND_MORE_TIMEOUT = 60000,
 }
