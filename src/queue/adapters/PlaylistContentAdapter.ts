@@ -1,5 +1,5 @@
-import { Song, Video } from 'youtube-moosick/dist/cjs/resources/generalTypes';
-import type { PlaylistContent } from 'youtube-moosick/dist/cjs/resources/resultTypes';
+import { Song, Video } from 'youtube-moosick';
+import type { PlaylistContent } from 'youtube-moosick';
 import { UnsupportedOperationError } from '../../resources/errors/UnsupportedOperationError.js';
 
 export class PlaylistContentAdapter {

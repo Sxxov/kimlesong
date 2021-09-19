@@ -1,5 +1,5 @@
-import { Song, Video } from 'youtube-moosick/dist/cjs/resources/generalTypes';
-import type { PlaylistContent } from 'youtube-moosick/dist/cjs/resources/resultTypes';
+import { Song, Video } from 'youtube-moosick';
+import type { PlaylistContent } from 'youtube-moosick';
 import { UnsupportedOperationError } from '../../resources/errors/UnsupportedOperationError.js';
 import type { QueueItem } from '../QueueItem.js';
 
@@ -24,6 +24,7 @@ export class QueueItemAdapter {
 			id: song.videoId,
 			duration: song.duration,
 			playlistId: song.playlistId,
+			url: song.url,
 		};
 	}
 
@@ -33,6 +34,7 @@ export class QueueItemAdapter {
 			title: video.name,
 			id: video.videoId,
 			duration: video.length,
+			url: video.url,
 		};
 	}
 
@@ -48,6 +50,9 @@ export class QueueItemAdapter {
 			id: playlistContent.trackId!,
 			duration: playlistContent.duration,
 			playlistId,
+			url: `https://www.youtube.com/watch?v=${
+				playlistContent.trackId ?? 'dQw4w9WgXcQ'
+			}&list=${playlistId}`,
 		};
 	}
 }
