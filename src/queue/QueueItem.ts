@@ -6,4 +6,5 @@ export class QueueItem extends Item {
 	public declare duration: number;
 	public declare id: string;
 	public declare playlistId?: string;
+	public declare url: string;
 }
