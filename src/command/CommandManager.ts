@@ -1,29 +1,61 @@
 import { REST } from '@discordjs/rest';
-import { Routes } from 'discord-api-types';
-import assert from 'assert';
-import * as commands from './commands';
-import type { AbstractCommand } from './commands/AbstractCommand.js';
+import { Routes } from 'discord-api-types/v9';
+import * as RawCommandMap from './commands';
+import { AbstractCommand } from './commands/AbstractCommand.js';
+import type { CommandBlueprint } from './CommandBlueprint.js';
+import { Log } from '../log/Log.js';
 
-assert(process.env.TOKEN);
-assert(process.env.CLIENT_ID);
+const Commands = Object.values(RawCommandMap).filter(
+	(Command) => Command !== RawCommandMap.AbstractCommand,
+);
+const commands = Commands.map(
+	(Command) => new (Command as new () => AbstractCommand)(),
+);
 
 export class CommandManager {
-	public static rest = new REST({ version: '9' }).setToken(
-		process.env.TOKEN!,
-	);
+	public rest: REST;
 
-	public static async registerCommands(guildId: string) {
+	constructor(private token: string, private clientId: string) {
+		this.rest = new REST({ version: '9' }).setToken(this.token);
+	}
+
+	public async run(info: CommandBlueprint) {
+		for (const command of commands) {
+			if (
+				command.name === info.command
+				|| command.aliases.includes(info.command)
+			) {
+				await info.reply({
+					options: {},
+					embeds: [await command.reply(info)],
+				});
+
+				Log.debug(`Reply: ${command.name} @ ${info.guildId ?? '?'}`);
+
+				return;
+			}
+		}
+
+		await info.reply({
+			embeds: [AbstractCommand.EMBED_ERROR_404],
+		});
+	}
+
+	public async registerCommands(guildId: string) {
 		await this.rest.put(
-			Routes.applicationGuildCommands(process.env.CLIENT_ID!, guildId),
+			Routes.applicationGuildCommands(this.clientId, guildId),
 			{
-				body: Object.values(commands)
-					.map(
-						(Command) =>
-							new (Command as new () => AbstractCommand)(),
-					)
+				body: commands
+					.map((command) => (command.name ? command.build() : false))
 					// filter out invalid commands (AbstractCommand)
-					.filter((command) => command.reply),
+					.filter(Boolean),
 			},
+		);
+
+		Log.debug(
+			`Registered commands:\n${commands
+				.map((command) => `\t${command.name}`)
+				.join('\n')}`,
 		);
 	}
 }
