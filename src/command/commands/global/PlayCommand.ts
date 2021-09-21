@@ -7,7 +7,6 @@ import { ClientError } from '../../../resources/errors/ClientError.js';
 import { State } from '../../../state/State.js';
 import type { CommandBlueprint } from '../../CommandBlueprint.js';
 import { AbstractCommand } from '../AbstractCommand.js';
-import { QueueCommand } from '../voice/QueueCommand.js';
 
 export class PlayCommand extends AbstractCommand {
 	public static override id = 'play';
@@ -49,7 +48,7 @@ export class PlayCommand extends AbstractCommand {
 			).appendQueueFromSearch(info.argument);
 
 			return (await super.getEmbed(info)).setDescription(
-				`${QueueCommand.stringifyQueueItem(first)}${
+				`${first.toMarkdown()}${
 					rest.length > 0 ? `\n\n+ ${rest.length} more` : ''
 				}`,
 			);

@@ -1,5 +1,4 @@
 import { ButtonInteraction, MessageButton, MessageEmbed } from 'discord.js';
-import type { QueueItem } from '../../../queue/QueueItem.js';
 import { Constants } from '../../../resources/Constants.js';
 import { TimeUtility } from '../../../resources/utilities/time.utility.js';
 import { State } from '../../../state/State.js';
@@ -166,11 +165,5 @@ export class QueueCommand extends AbstractCommand {
 				.setStyle('SECONDARY')
 				.setDisabled(!isNextEnabled),
 		);
-	}
-
-	public static stringifyQueueItem(queueItem: QueueItem) {
-		return `[${queueItem.artist} - ${queueItem.title}](${
-			queueItem.url
-		}) — \`${TimeUtility.hhmmss(queueItem.duration)}\``;
 	}
 }

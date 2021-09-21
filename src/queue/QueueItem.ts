@@ -1,4 +1,5 @@
 import { Item } from '../resources/blocks/classes/item/Item.js';
+import { TimeUtility } from '../resources/utilities/time.utility.js';
 
 export class QueueItem extends Item {
 	public declare title: string;
@@ -7,4 +8,16 @@ export class QueueItem extends Item {
 	public declare id: string;
 	public declare playlistId?: string;
 	public declare url: string;
+
+	public override toString() {
+		return `${this.artist} - ${this.title} — ${TimeUtility.hhmmss(
+			this.duration,
+		)}`;
+	}
+
+	public toMarkdown() {
+		return `[${this.artist} - ${this.title}](${
+			this.url
+		}) — \`${TimeUtility.hhmmss(this.duration)}\``;
+	}
 }
