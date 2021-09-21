@@ -12,7 +12,11 @@ import { GuildState } from '../state/states/GuildState.js';
 import { VoiceChannelStateFactory } from '../state/states/VoiceChannelStateFactory.js';
 
 const client = new Client({
-	intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MESSAGES],
+	intents: [
+		Intents.FLAGS.GUILDS,
+		Intents.FLAGS.GUILD_MESSAGES,
+		Intents.FLAGS.GUILD_VOICE_STATES,
+	],
 });
 const ytm = await YoutubeMoosick.new();
 const prefixDb = new JSONdb<string>('./db/prefix/v1.json');
@@ -50,44 +54,6 @@ export class ClientSingleton {
 				(guild) => new GuildState(guild.id, this.credentials),
 			),
 		);
-
-		// State.guildIdToQueue.subscribeLazy((_, modified) => {
-		// 	if (modified?.[0] && modified?.[1]) {
-		// 		const [guildId, queue] = modified;
-
-		// 		queue.subscribeLazy(() => {
-		// 			State.guildIdToPendingMessage
-		// 				.get(guildId)
-		// 				?.channel.send(new commands.QueueCommand().onUpdated());
-		// 		});
-		// 	}
-		// });
-
-		// State.guildIdToQueuedPlaylists.subscribeLazy((_, modified) => {
-		// 	if (modified?.[0] && modified?.[1]) {
-		// 		const [guildId, playlist] = modified;
-
-		// 		playlist.subscribeLazy(async (p, modified) => {
-		// 			const addedPlaylist = modified!.find(Boolean);
-		// 			if (
-		// 				(addedPlaylist?.playlistContents.length ?? 0)
-		// 					>= Constants.PLAYLIST_CONTENT_LIMIT
-		// 				&& addedPlaylist?.continuation
-		// 			) {
-		// 				(
-		// 					client.channels.cache.get(
-		// 						State.guildIdToQueueChannelId.get(guildId)
-		// 							?? '',
-		// 					) as TextBasedChannels
-		// 				)?.send({
-		// 					embeds: [
-		// 						await new PlayCommand().onAddLargePlaylist(),
-		// 					],
-		// 				});
-		// 			}
-		// 		});
-		// 	}
-		// });
 	}
 
 	@listener
