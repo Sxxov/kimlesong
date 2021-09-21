@@ -132,13 +132,24 @@ export class QueueManager {
 		if (results.playlistContents.length !== results.headers?.songCount) {
 			const { guildId } = this;
 
-			(function timeout() {
+			(async function timeout() {
 				if (
 					State.guildIdToQueuedPlaylists
 						.get(guildId)
 						?.some((playlist) => playlist === results)
 				) {
-					void results.playlistContents.loadNext();
+					const { result } =
+						(await results.playlistContents.loadNext()) ?? {};
+					const queue = State.guildIdToQueue.get(guildId);
+
+					queue?.push(
+						...(result?.map((playlistContent) =>
+							QueueItemAdapter.adaptPlaylistContent(
+								playlistContent,
+								id,
+							),
+						) ?? []),
+					);
 
 					State.guildIdToQueueMoreTimeout.set(
 						guildId,
