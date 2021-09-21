@@ -13,8 +13,8 @@ import { Constants } from '../resources/Constants.js';
 import { YoutubeMoosick } from 'youtube-moosick';
 import { State } from '../state/StateManager.js';
 import { ArrayStore } from '../resources/blocks/classes/store/stores/ArrayStore.js';
-import * as commands from '../command/commands';
 import { CommandManager } from '../command/CommandManager.js';
+import { PlayCommand } from '../command/commands/voice/PlayCommand.js';
 
 const client = new Client({
 	intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MESSAGES],
@@ -101,7 +101,7 @@ export class ClientSingleton {
 							) as TextBasedChannels
 						)?.send({
 							embeds: [
-								await new commands.PlayCommand().onAddLargePlaylist(),
+								await new PlayCommand().onAddLargePlaylist(),
 							],
 						});
 					}
