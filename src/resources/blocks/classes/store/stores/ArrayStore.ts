@@ -105,7 +105,7 @@ export class ArrayStore<T = unknown> extends ExtendableStore<T[]> {
 			this.getModified(
 				-start,
 				result,
-				replacements
+				replacements.length > 0
 					? this.getModified(start, replacements)
 					: undefined,
 			),
@@ -143,7 +143,7 @@ export class ArrayStore<T = unknown> extends ExtendableStore<T[]> {
 
 		if (Object.is(start, -0) && items.length > 0) {
 			// @ts-expect-error force assign -0
-			arr['-0'] = items[0];
+			arr['-0'] = items.shift();
 			start += increment;
 		}
 
