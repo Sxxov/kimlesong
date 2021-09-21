@@ -1,12 +1,12 @@
 import type { SlashCommandBuilder } from '@discordjs/builders';
 import type { MessageEmbed } from 'discord.js';
-import { ClientSingleton } from '../../client/ClientSingleton.js';
-import { QueueManager } from '../../queue/QueueManager.js';
-import { Constants } from '../../resources/Constants.js';
-import { ClientError } from '../../resources/errors/ClientError.js';
-import { State } from '../../state/StateManager.js';
-import type { CommandBlueprint } from '../CommandBlueprint.js';
-import { AbstractCommand } from './AbstractCommand.js';
+import { ClientSingleton } from '../../../client/ClientSingleton.js';
+import { QueueManager } from '../../../queue/QueueManager.js';
+import { Constants } from '../../../resources/Constants.js';
+import { ClientError } from '../../../resources/errors/ClientError.js';
+import { State } from '../../../state/StateManager.js';
+import type { CommandBlueprint } from '../../CommandBlueprint.js';
+import { AbstractCommand } from '../AbstractCommand.js';
 import { QueueCommand } from './QueueCommand.js';
 
 export class PlayCommand extends AbstractCommand {

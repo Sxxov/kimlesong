@@ -1,6 +1,6 @@
 import type { MessageEmbed } from 'discord.js';
-import type { CommandBlueprint } from '../CommandBlueprint.js';
-import { AbstractCommand } from './AbstractCommand.js';
+import type { CommandBlueprint } from '../../CommandBlueprint.js';
+import { AbstractCommand } from '../AbstractCommand.js';
 
 export class PingCommand extends AbstractCommand {
 	public name = 'ping';

@@ -1,7 +1,7 @@
 import type { MessageEmbed } from 'discord.js';
-import { State } from '../../state/StateManager.js';
-import type { CommandBlueprint } from '../CommandBlueprint.js';
-import { AbstractCommand } from './AbstractCommand.js';
+import { State } from '../../../state/StateManager.js';
+import type { CommandBlueprint } from '../../CommandBlueprint.js';
+import { AbstractCommand } from '../AbstractCommand.js';
 
 export class ClearCommand extends AbstractCommand {
 	public name = 'clear';

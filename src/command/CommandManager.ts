@@ -1,17 +1,24 @@
 import { REST } from '@discordjs/rest';
 import { Routes } from 'discord-api-types/v9';
-import * as RawCommandMap from './commands';
+import * as GlobalCommandObj from './commands/global';
+import * as VoiceCommandObj from './commands/voice';
 import { AbstractCommand } from './commands/AbstractCommand.js';
 import type { CommandBlueprint } from './CommandBlueprint.js';
 import { Log } from '../log/Log.js';
 import type { ButtonInteraction } from 'discord.js';
 
-const Commands = Object.values(RawCommandMap).filter(
-	(Command) => Command !== RawCommandMap.AbstractCommand,
-);
-const commands = Commands.map(
+const GlobalCommands = Object.values(GlobalCommandObj);
+const globalCommands = GlobalCommands.map(
 	(Command) => new (Command as new () => AbstractCommand)(),
 );
+
+const VoiceCommands = Object.values(VoiceCommandObj);
+const voiceCommands = VoiceCommands.map(
+	(Command) => new (Command as new () => AbstractCommand)(),
+);
+
+const AllCommands = [...GlobalCommands, ...VoiceCommands];
+const allCommands = [...globalCommands, ...voiceCommands];
 
 export class CommandManager {
 	public rest: REST;
@@ -21,12 +28,12 @@ export class CommandManager {
 	}
 
 	public async act(interaction: ButtonInteraction) {
-		for (const command of commands) {
+		for (const command of allCommands) {
 			if (command.actionIds.includes(interaction.customId)) {
 				await command.act(interaction);
 
 				Log.debug(
-					`Act: ${command.name} @ ${interaction.guildId ?? '?'}`,
+					`Action: ${command.name} @ ${interaction.guildId ?? '?'}`,
 				);
 
 				return;
@@ -35,7 +42,7 @@ export class CommandManager {
 	}
 
 	public async run(info: CommandBlueprint) {
-		for (const command of commands) {
+		for (const command of allCommands) {
 			if (
 				command.name === info.command
 				|| command.aliases.includes(info.command)
@@ -66,7 +73,7 @@ export class CommandManager {
 		await this.rest.put(
 			Routes.applicationGuildCommands(this.clientId, guildId),
 			{
-				body: commands
+				body: allCommands
 					.map((command) => (command.name ? command.build() : false))
 					// filter out invalid commands (AbstractCommand)
 					.filter(Boolean),
@@ -74,9 +81,9 @@ export class CommandManager {
 		);
 
 		Log.debug(
-			`Registered commands:\n${commands
-				.map((command) => `\t${command.name}`)
-				.join('\n')}`,
+			`Registered: ${allCommands
+				.map((command) => `${command.name}`)
+				.join(', ')} @ ${guildId}`,
 		);
 	}
 }
