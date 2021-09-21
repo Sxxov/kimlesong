@@ -14,7 +14,7 @@ import { YoutubeMoosick } from 'youtube-moosick';
 import { State } from '../state/State.js';
 import { ArrayStore } from '../resources/blocks/classes/store/stores/ArrayStore.js';
 import { CommandManager } from '../command/CommandManager.js';
-import { PlayCommand } from '../command/commands/voice/PlayCommand.js';
+import { PlayCommand } from '../command/commands/global/PlayCommand.js';
 import { CommandBlueprintAdapter } from '../command/adapters/CommandBlueprintAdapter.js';
 
 const client = new Client({
