@@ -152,12 +152,16 @@ export class ArrayStore<T = unknown> extends ExtendableStore<T[]> {
 
 		if (Object.is(start, -0) && items.length > 0) {
 			// @ts-expect-error force assign -0
-			arr['-0'] = items.shift();
+			arr['-0'] = items[0];
 			start += increment;
 		}
 
-		for (let i = 0, l = items.length * increment; i < l; i += increment) {
-			arr[i + start] = items[i];
+		for (
+			let i = start, l = (items.length + start) * increment;
+			i < l;
+			i += increment
+		) {
+			arr[i] = items[i - start];
 		}
 
 		return arr;
