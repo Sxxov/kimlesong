@@ -1,5 +1,5 @@
 import { SlashCommandBuilder } from '@discordjs/builders';
-import { MessageEmbed } from 'discord.js';
+import { ButtonInteraction, MessageActionRow, MessageEmbed } from 'discord.js';
 import { Log } from '../../log/Log.js';
 import { Constants } from '../../resources/Constants.js';
 import { ClientError } from '../../resources/errors/ClientError.js';
@@ -13,7 +13,7 @@ export abstract class AbstractCommand {
 			Constants.EMBED_AUTHOR_IMAGE,
 			Constants.EMBED_AUTHOR_URL,
 		)
-		.setTitle('whoops!')
+		.setTitle(Constants.EMBED_TITLE_ERROR_INTERNAL)
 		.setDescription(
 			"something went wrong, the server room caught fire; it's (probably) not your fault.",
 		);
@@ -25,7 +25,7 @@ export abstract class AbstractCommand {
 			Constants.EMBED_AUTHOR_IMAGE,
 			Constants.EMBED_AUTHOR_URL,
 		)
-		.setTitle('hmm?')
+		.setTitle(Constants.EMBED_TITLE_ERROR_USER)
 		.setDescription("that command doesn't seem to exist, try `!help`");
 
 	public static EMBED_ERROR_400 = new MessageEmbed()
@@ -35,12 +35,13 @@ export abstract class AbstractCommand {
 			Constants.EMBED_AUTHOR_IMAGE,
 			Constants.EMBED_AUTHOR_URL,
 		)
-		.setTitle('hmm?')
+		.setTitle(Constants.EMBED_TITLE_ERROR_USER)
 		.setDescription("that command doesn't look right lol, try again");
 
 	public abstract name: string;
 	public abstract description: string;
 	public abstract aliases: string[];
+	public actionIds: string[] = [];
 
 	// eslint-disable-next-line @typescript-eslint/no-unused-vars
 	public async reply(info: CommandBlueprint) {
@@ -52,6 +53,14 @@ export abstract class AbstractCommand {
 				Constants.EMBED_AUTHOR_URL,
 			)
 			.setTitle(this.name);
+	}
+
+	// eslint-disable-next-line @typescript-eslint/no-unused-vars
+	public async act(info: ButtonInteraction) {}
+
+	// eslint-disable-next-line @typescript-eslint/no-unused-vars
+	public async action(info: CommandBlueprint) {
+		return new MessageActionRow();
 	}
 
 	public build(): SlashCommandBuilder {

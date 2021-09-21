@@ -4,6 +4,7 @@ import * as RawCommandMap from './commands';
 import { AbstractCommand } from './commands/AbstractCommand.js';
 import type { CommandBlueprint } from './CommandBlueprint.js';
 import { Log } from '../log/Log.js';
+import type { ButtonInteraction } from 'discord.js';
 
 const Commands = Object.values(RawCommandMap).filter(
 	(Command) => Command !== RawCommandMap.AbstractCommand,
@@ -19,15 +20,35 @@ export class CommandManager {
 		this.rest = new REST({ version: '9' }).setToken(this.token);
 	}
 
+	public async act(interaction: ButtonInteraction) {
+		for (const command of commands) {
+			if (command.actionIds.includes(interaction.customId)) {
+				await command.act(interaction);
+
+				Log.debug(
+					`Act: ${command.name} @ ${interaction.guildId ?? '?'}`,
+				);
+
+				return;
+			}
+		}
+	}
+
 	public async run(info: CommandBlueprint) {
 		for (const command of commands) {
 			if (
 				command.name === info.command
 				|| command.aliases.includes(info.command)
 			) {
+				const messageActionRow = await command.action(info);
+
 				await info.reply({
 					options: {},
 					embeds: [await command.reply(info)],
+					components:
+						messageActionRow.components.length > 0
+							? [messageActionRow]
+							: undefined,
 				});
 
 				Log.debug(`Reply: ${command.name} @ ${info.guildId ?? '?'}`);
