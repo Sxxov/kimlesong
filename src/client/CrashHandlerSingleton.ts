@@ -8,11 +8,11 @@ export class CrashHandlerSingleton {
 	}
 
 	private static onError(err: Error, origin: NodeJS.UncaughtExceptionOrigin) {
-		Log.error(`FATAL: From ${origin.toString()}`);
+		Log.error(`DEGRADED: From ${origin.toString()}`);
 		Log.error(err.stack);
 
-		childProcess.fork(process.argv[1], {
-			detached: true,
-		});
+		// childProcess.fork(process.argv[1], {
+		// 	detached: true,
+		// });
 	}
 }
