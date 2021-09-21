@@ -15,6 +15,7 @@ import { State } from '../state/State.js';
 import { ArrayStore } from '../resources/blocks/classes/store/stores/ArrayStore.js';
 import { CommandManager } from '../command/CommandManager.js';
 import { PlayCommand } from '../command/commands/voice/PlayCommand.js';
+import { CommandBlueprintAdapter } from '../command/adapters/CommandBlueprintAdapter.js';
 
 const client = new Client({
 	intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MESSAGES],
@@ -120,15 +121,9 @@ export class ClientSingleton {
 		}
 
 		if (interaction.isCommand()) {
-			await this.commandManager.run({
-				...interaction,
-				userId: interaction.user.id,
-				argument:
-					interaction.options.getString(Constants.SLASH_ARGUMENT_NAME)
-					?? '',
-				command: interaction.commandName,
-				reply: interaction.reply.bind(interaction) as Message['reply'],
-			});
+			await this.commandManager.run(
+				CommandBlueprintAdapter.adaptCommandInteraction(interaction),
+			);
 		}
 
 		if (interaction.isButton()) {
@@ -160,6 +155,7 @@ export class ClientSingleton {
 			await this.commandManager.run({
 				...message,
 				userId: message.member?.id ?? null,
+				messageId: message.id,
 				argument,
 				command,
 				reply: message.reply.bind(message),
