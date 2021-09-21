@@ -9,15 +9,15 @@ export class QueueItem extends Item {
 	public declare playlistId?: string;
 	public declare url: string;
 
-	public override toString() {
+	public override readonly toString = () => {
 		return `${this.artist} - ${this.title} — ${TimeUtility.hhmmss(
 			this.duration,
 		)}`;
-	}
+	};
 
-	public toMarkdown() {
+	public readonly toMarkdown = () => {
 		return `[${this.artist} - ${this.title}](${
 			this.url
 		}) — \`${TimeUtility.hhmmss(this.duration)}\``;
-	}
+	};
 }
