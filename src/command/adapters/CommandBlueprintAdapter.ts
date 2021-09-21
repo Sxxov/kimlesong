@@ -3,32 +3,48 @@ import type {
 	CommandInteraction,
 	Message,
 } from 'discord.js';
+import type { CommandBlueprint } from '../CommandBlueprint.js';
 
 export class CommandBlueprintAdapter {
-	public static adaptCommandInteraction(interaction: CommandInteraction) {
+	public static adaptMessage(
+		message: Message,
+		commandId: string,
+		argument: string,
+	): CommandBlueprint {
+		return {
+			channelId: message.channelId,
+			guildId: message.guildId,
+			userId: message.member?.id ?? null,
+			argument,
+			commandId,
+			reply: message.reply.bind(message),
+		};
+	}
+
+	public static adaptCommandInteraction(
+		interaction: CommandInteraction,
+	): CommandBlueprint {
 		return {
 			argument: '',
 			channelId: interaction.channelId,
-			command: interaction.commandName,
+			commandId: interaction.commandName,
 			guildId: interaction.guildId,
 			reply: interaction.reply.bind(interaction) as Message['reply'],
 			userId: interaction.user.id,
-			messageId: interaction.id,
 		};
 	}
 
 	public static adaptButtonInteraction(
 		interaction: ButtonInteraction,
 		commandId: string,
-	) {
+	): CommandBlueprint {
 		return {
 			argument: '',
 			channelId: interaction.channelId,
-			command: commandId,
+			commandId,
 			guildId: interaction.guildId,
 			reply: interaction.update.bind(interaction) as Message['reply'],
 			userId: interaction.user.id,
-			messageId: interaction.message.id,
 		};
 	}
 }

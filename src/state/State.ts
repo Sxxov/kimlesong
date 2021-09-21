@@ -1,12 +1,11 @@
-import type { ContinuablePlaylistURL } from 'youtube-moosick';
-import type { QueueItem } from '../queue/QueueItem.js';
 import {
 	Store,
 	STORE_SET_KEY,
 	Storify,
 } from '../resources/blocks/classes/store/Store.js';
-import type { ArrayStore } from '../resources/blocks/classes/store/stores/ArrayStore.js';
-import { MapStore } from '../resources/blocks/classes/store/stores/MapStore.js';
+import { ArrayStore } from '../resources/blocks/classes/store/stores/ArrayStore.js';
+import type { GuildState } from './states/GuildState.js';
+import type { VoiceChannelState } from './states/VoiceChannelState.js';
 
 function contextual(target: typeof States, name: keyof typeof State.s): void {
 	// no need to define extra setter (like set/get decorators)
@@ -38,27 +37,7 @@ export const State: {
 };
 
 export class States {
-	@contextual public static guildIdToQueue: MapStore<
-		string,
-		ArrayStore<QueueItem>
-	> = new MapStore();
-
-	@contextual public static guildIdToQueuedPlaylists: MapStore<
-		string,
-		ArrayStore<ContinuablePlaylistURL>
-	> = new MapStore();
-
-	@contextual public static guildIdToQueueMoreTimeout: MapStore<
-		string,
-		ReturnType<typeof setTimeout>
-	> = new MapStore();
-
-	// for if the server crashes, it can reply with an error instead of disappearing
-	@contextual public static guildIdToQueueChannelId: MapStore<
-		string,
-		string
-	> = new MapStore();
-
-	@contextual public static guildIds: ArrayStore<string> | undefined =
-		undefined;
+	@contextual public static guilds = new ArrayStore<GuildState>();
+	@contextual public static voiceChannels =
+		new ArrayStore<VoiceChannelState>();
 }

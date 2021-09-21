@@ -1,9 +1,6 @@
-import type { YoutubeMoosick } from 'youtube-moosick';
 import { Song, Video } from 'youtube-moosick';
-import { ArrayStore } from '../resources/blocks/classes/store/stores/ArrayStore.js';
 import { Constants } from '../resources/Constants.js';
-import { IllegalStateError } from '../resources/errors/IllegalStateError.js';
-import { State } from '../state/State.js';
+import type { VoiceChannelState } from '../state/states/VoiceChannelState.js';
 import { QueueItemAdapter } from './adapters/QueueItemAdapter.js';
 import { InvalidPlaylistError } from './errors/InvalidPlaylistError.js';
 import { InvalidSongError } from './errors/InvalidSongError.js';
@@ -12,25 +9,17 @@ import { UnsupportedURLError } from './errors/UnsupportedURLError.js';
 import type { QueueItem } from './QueueItem.js';
 
 export class QueueManager {
-	public queue: ArrayStore<QueueItem>;
-
-	constructor(private guildId: string, private ctx: YoutubeMoosick) {
-		this.queue = State.guildIdToQueue.get(this.guildId)!;
-	}
+	constructor(private ctx: VoiceChannelState) {}
 
 	public async appendQueueFromSearch(searchString: string) {
-		if (this.queue == null) {
-			throw new IllegalStateError('`this.queue` is nullish');
-		}
+		const result = await this.createQueueFromSearch(searchString);
 
-		const queueItems = await this.createQueueFromSearch(searchString);
+		this.ctx.queue.append(result);
 
-		this.queue.push(...queueItems);
-
-		return queueItems;
+		return result;
 	}
 
-	public async createQueueFromSearch(
+	private async createQueueFromSearch(
 		searchString: string,
 	): Promise<QueueItem[]> {
 		if (
@@ -59,8 +48,8 @@ export class QueueManager {
 		return this.createQueueFromYoutubeSearch(searchString);
 	}
 
-	public async createQueueFromYoutubeSearch(searchString: string) {
-		const result = (await this.ctx.search(searchString)).find(
+	private async createQueueFromYoutubeSearch(searchString: string) {
+		const result = (await this.ctx.ytm.search(searchString)).find(
 			(item) => item instanceof Song || item instanceof Video,
 		) as Song | Video | undefined;
 
@@ -73,7 +62,7 @@ export class QueueManager {
 
 	// @ts-expect-error stub
 	// TODO(sxxov): implement spotify support
-	public async createQueueFromSpotifyURL(url: URL): Promise<QueueItem[]> {
+	private async createQueueFromSpotifyURL(url: URL): Promise<QueueItem[]> {
 		switch (true) {
 			case url.pathname.startsWith(Constants.SPOTIFY_PATHNAME_ALBUM):
 				break;
@@ -86,7 +75,7 @@ export class QueueManager {
 		}
 	}
 
-	public async createQueueFromYoutubeURL(url: URL): Promise<QueueItem[]> {
+	private async createQueueFromYoutubeURL(url: URL): Promise<QueueItem[]> {
 		switch (true) {
 			case url.pathname.startsWith(Constants.YOUTUBE_PATHNAME_PLAYLIST): {
 				const id = url.searchParams.get('list');
@@ -113,50 +102,49 @@ export class QueueManager {
 		}
 	}
 
-	public async createQueueFromYoutubePlaylistId(
+	private async createQueueFromYoutubePlaylistId(
 		id: string,
 	): Promise<QueueItem[]> {
 		if (!(id.startsWith('PL') || id.startsWith('VL'))) {
 			throw new InvalidPlaylistError();
 		}
 
-		const results = await this.ctx.getPlaylist(
+		const results = await this.ctx.ytm.getPlaylist(
 			id,
 			Constants.PLAYLIST_CONTENT_LIMIT,
 		);
 
-		State.guildIdToQueuedPlaylists
-			.getOrAssignFromFactory(this.guildId, () => new ArrayStore())
-			?.push(results);
+		const newLength = this.ctx.queuedPlaylists.push(results);
 
 		if (results.playlistContents.length !== results.headers?.songCount) {
-			const { guildId } = this;
+			const timeout = async () => {
+				const indexOfQueuedPlaylists =
+					this.ctx.queuedPlaylists.indexOf(results);
 
-			(async function timeout() {
-				if (
-					State.guildIdToQueuedPlaylists
-						.get(guildId)
-						?.some((playlist) => playlist === results)
-				) {
-					const { result } =
-						(await results.playlistContents.loadNext()) ?? {};
-					const queue = State.guildIdToQueue.get(guildId);
+				if (indexOfQueuedPlaylists === -1) return;
 
-					queue?.push(
-						...(result?.map((playlistContent) =>
-							QueueItemAdapter.adaptPlaylistContent(
-								playlistContent,
-								id,
-							),
-						) ?? []),
-					);
+				const { result } =
+					(await results.playlistContents.loadNext()) ?? {};
 
-					State.guildIdToQueueMoreTimeout.set(
-						guildId,
-						setTimeout(timeout, Constants.COMMAND_MORE_TIMEOUT),
-					);
-				}
-			})();
+				this.ctx.queue.push(
+					...(result?.map((playlistContent) =>
+						QueueItemAdapter.adaptPlaylistContent(
+							playlistContent,
+							id,
+						),
+					) ?? []),
+				);
+
+				this.ctx.queuedPlaylistsTimeouts.setAt(
+					indexOfQueuedPlaylists,
+					setTimeout(timeout, Constants.COMMAND_MORE_TIMEOUT),
+				);
+			};
+
+			this.ctx.queuedPlaylistsTimeouts.setAt(
+				newLength - 1,
+				setTimeout(timeout, Constants.COMMAND_MORE_TIMEOUT),
+			);
 		}
 
 		return results.playlistContents.map((playlistContent) =>
@@ -164,10 +152,10 @@ export class QueueManager {
 		);
 	}
 
-	public async createQueueFromYoutubeSongId(
+	private async createQueueFromYoutubeSongId(
 		id: string,
 	): Promise<QueueItem[]> {
-		const results = await this.ctx.search(id);
+		const results = await this.ctx.ytm.search(id);
 
 		for (let i = 0, l = results.length; i < l; ++i) {
 			const result = results[i];

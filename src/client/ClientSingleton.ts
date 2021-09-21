@@ -1,21 +1,15 @@
-import {
-	Client,
-	Guild,
-	Intents,
-	Interaction,
-	Message,
-	TextBasedChannels,
-} from 'discord.js';
+import { Client, Guild, Intents, Interaction, Message } from 'discord.js';
 import assert from 'assert';
 import { Log } from '../log/Log.js';
 import JSONdb from 'simple-json-db';
 import { Constants } from '../resources/Constants.js';
 import { YoutubeMoosick } from 'youtube-moosick';
 import { State } from '../state/State.js';
-import { ArrayStore } from '../resources/blocks/classes/store/stores/ArrayStore.js';
-import { CommandManager } from '../command/CommandManager.js';
-import { PlayCommand } from '../command/commands/global/PlayCommand.js';
+import { CommandManagerSingleton } from '../command/CommandManagerSingleton.js';
 import { CommandBlueprintAdapter } from '../command/adapters/CommandBlueprintAdapter.js';
+import { ClientCredentialsItem } from './ClientCredentialsItem.js';
+import { GuildState } from '../state/states/GuildState.js';
+import { VoiceChannelStateFactory } from '../state/states/VoiceChannelStateFactory.js';
 
 const client = new Client({
 	intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MESSAGES],
@@ -37,40 +31,25 @@ function listener(target: ClientSingleton, propertyKey: string) {
 export class ClientSingleton {
 	public static client = client;
 	public static ytm = ytm;
+	public static credentials = ClientCredentialsItem.from({
+		token: process.env.TOKEN!,
+		clientId: process.env.CLIENT_ID!,
+	});
 
-	private static commandManager = new CommandManager(
-		process.env.TOKEN!,
-		process.env.CLIENT_ID!,
+	public static voiceChannelStateFactory = new VoiceChannelStateFactory(
+		this.client,
+		this.ytm,
 	);
 
 	@listener
 	public static async onReady() {
 		Log.info(`Logged in as ${this.client.user!.tag}!`);
 
-		State.guildIds = new ArrayStore();
-		State.guildIds.push(...client.guilds.cache.map((guild) => guild.id));
-		State.guildIds.forEach((guildId) => {
-			State.guildIdToQueue.set(guildId, new ArrayStore());
-			void this.commandManager.registerCommands(guildId);
-		});
-		State.guildIds.subscribeLazy((guildIds, modified) => {
-			if (modified) {
-				// deleted items (-ve indices)
-				for (let i = 0, l = modified.length; i > l; --i) {
-					if (guildIds[i]) {
-						State.guildIdToQueue.delete(guildIds[i]);
-					}
-				}
-
-				// added items (+ve indices)
-				for (let i = 0, l = modified.length; i < l; ++i) {
-					if (guildIds[i]) {
-						State.guildIdToQueue.set(guildIds[i], new ArrayStore());
-						void this.commandManager.registerCommands(guildIds[i]);
-					}
-				}
-			}
-		});
+		State.guilds.append(
+			client.guilds.cache.map(
+				(guild) => new GuildState(guild.id, this.credentials),
+			),
+		);
 
 		// State.guildIdToQueue.subscribeLazy((_, modified) => {
 		// 	if (modified?.[0] && modified?.[1]) {
@@ -84,50 +63,43 @@ export class ClientSingleton {
 		// 	}
 		// });
 
-		State.guildIdToQueuedPlaylists.subscribeLazy((_, modified) => {
-			if (modified?.[0] && modified?.[1]) {
-				const [guildId, playlist] = modified;
+		// State.guildIdToQueuedPlaylists.subscribeLazy((_, modified) => {
+		// 	if (modified?.[0] && modified?.[1]) {
+		// 		const [guildId, playlist] = modified;
 
-				playlist.subscribeLazy(async (p, modified) => {
-					const addedPlaylist = modified!.find(Boolean);
-					if (
-						(addedPlaylist?.playlistContents.length ?? 0)
-							>= Constants.PLAYLIST_CONTENT_LIMIT
-						&& addedPlaylist?.continuation
-					) {
-						(
-							client.channels.cache.get(
-								State.guildIdToQueueChannelId.get(guildId)
-									?? '',
-							) as TextBasedChannels
-						)?.send({
-							embeds: [
-								await new PlayCommand().onAddLargePlaylist(),
-							],
-						});
-					}
-				});
-			}
-		});
+		// 		playlist.subscribeLazy(async (p, modified) => {
+		// 			const addedPlaylist = modified!.find(Boolean);
+		// 			if (
+		// 				(addedPlaylist?.playlistContents.length ?? 0)
+		// 					>= Constants.PLAYLIST_CONTENT_LIMIT
+		// 				&& addedPlaylist?.continuation
+		// 			) {
+		// 				(
+		// 					client.channels.cache.get(
+		// 						State.guildIdToQueueChannelId.get(guildId)
+		// 							?? '',
+		// 					) as TextBasedChannels
+		// 				)?.send({
+		// 					embeds: [
+		// 						await new PlayCommand().onAddLargePlaylist(),
+		// 					],
+		// 				});
+		// 			}
+		// 		});
+		// 	}
+		// });
 	}
 
 	@listener
 	public static async onInteractionCreate(interaction: Interaction) {
-		if (interaction.guildId && interaction.channelId) {
-			State.guildIdToQueueChannelId.set(
-				interaction.guildId,
-				interaction.channelId,
-			);
-		}
-
 		if (interaction.isCommand()) {
-			await this.commandManager.run(
+			await CommandManagerSingleton.run(
 				CommandBlueprintAdapter.adaptCommandInteraction(interaction),
 			);
 		}
 
 		if (interaction.isButton()) {
-			await this.commandManager.act(interaction);
+			await CommandManagerSingleton.act(interaction);
 		}
 	}
 
@@ -142,30 +114,22 @@ export class ClientSingleton {
 
 		for (const line of message.content.split('\n')) {
 			const content = line.substr(prefix.length).trim();
-			const [, command, , argument] =
+			const [, commandId, , argument] =
 				/^(\w+)( )?(.*)?$/.exec(content) ?? [];
 
-			if (message.guildId && message.channelId) {
-				State.guildIdToQueueChannelId.set(
-					message.guildId,
-					message.channelId,
-				);
-			}
-
-			await this.commandManager.run({
-				...message,
-				userId: message.member?.id ?? null,
-				messageId: message.id,
-				argument,
-				command,
-				reply: message.reply.bind(message),
-			});
+			await CommandManagerSingleton.run(
+				CommandBlueprintAdapter.adaptMessage(
+					message,
+					commandId,
+					argument,
+				),
+			);
 		}
 	}
 
 	@listener
 	public static async onGuildCreate(guild: Guild) {
-		State.guildIds?.push(guild.id);
+		State.guilds.push(new GuildState(guild.id, this.credentials));
 	}
 
 	@listener
@@ -173,6 +137,11 @@ export class ClientSingleton {
 		// server outage, not guild remove bot
 		if (!guild.available) return;
 
-		State.guildIds?.splice(State.guildIds.indexOf(guild.id), 1);
+		const [deleted] = State.guilds.splice(
+			State.guilds.findIndex((g) => g.id === guild.id),
+			1,
+		);
+
+		deleted.destroy();
 	}
 }

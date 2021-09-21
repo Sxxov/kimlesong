@@ -1,12 +1,11 @@
 import { ButtonInteraction, MessageButton, MessageEmbed } from 'discord.js';
 import { Constants } from '../../../resources/Constants.js';
 import { TimeUtility } from '../../../resources/utilities/time.utility.js';
-import { State } from '../../../state/State.js';
 import { CommandBlueprintAdapter } from '../../adapters/CommandBlueprintAdapter.js';
 import type { CommandBlueprint } from '../../CommandBlueprint.js';
-import { AbstractCommand } from '../AbstractCommand.js';
+import { AbstractVoiceCommand } from '../AbstractVoiceCommand.js';
 
-export class QueueCommand extends AbstractCommand {
+export class QueueCommand extends AbstractVoiceCommand {
 	public static override id = 'queue';
 	public static override description = 'Shows the current queue';
 	public static override aliases = ['q'];
@@ -23,12 +22,29 @@ export class QueueCommand extends AbstractCommand {
 		info: CommandBlueprint,
 		offset = 0,
 	): Promise<MessageEmbed> {
-		const queue = State.guildIdToQueue.get(info.guildId!);
-		const timeout = State.guildIdToQueueMoreTimeout.get(info.guildId!);
+		const { queue, queuedPlaylistsTimeouts } = this.ctx;
+
+		let timeout: NodeJS.Timeout;
+
+		let nextTimeoutSinceProcessStart = Infinity;
+		for (let i = 0, l = queuedPlaylistsTimeouts.length; i < l; ++i) {
+			const queuedPlaylistsTimeout = queuedPlaylistsTimeouts.at(i);
+
+			const timeoutSinceProcessStart =
+				// eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+				Number((queuedPlaylistsTimeout as any)._idleStart) +
+				// eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+				Number((queuedPlaylistsTimeout as any)._idleTimeout);
+
+			if (timeoutSinceProcessStart < nextTimeoutSinceProcessStart) {
+				timeout = queuedPlaylistsTimeout!;
+				nextTimeoutSinceProcessStart = timeoutSinceProcessStart;
+			}
+		}
 
 		if (queue == null) return QueueCommand.errorInternal();
 
-		const nextPlaylistMore = timeout
+		const nextPlaylistMore = timeout!
 			? Date.now() +
 			  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
 			  Number((timeout as any)._idleStart)
@@ -112,15 +128,19 @@ export class QueueCommand extends AbstractCommand {
 			interaction.message.embeds[0].footer?.text?.split('/') ?? []
 		).map(Number);
 
+		const { actionId } = QueueCommand.deserializeCustomId(
+			interaction.customId,
+		);
+
 		if (
-			interaction.customId === Constants.EMBED_BUTTON_QUEUE_NEXT
+			actionId === Constants.EMBED_BUTTON_QUEUE_NEXT
 			&& curr + 1 <= total
 		) {
 			++curr;
 		}
 
 		if (
-			interaction.customId === Constants.EMBED_BUTTON_QUEUE_PREVIOUS
+			actionId === Constants.EMBED_BUTTON_QUEUE_PREVIOUS
 			&& Number(curr) - 1 >= 1
 		) {
 			--curr;
@@ -155,12 +175,16 @@ export class QueueCommand extends AbstractCommand {
 	) {
 		return (await super.getAction(info)).addComponents(
 			new MessageButton()
-				.setCustomId(Constants.EMBED_BUTTON_QUEUE_PREVIOUS)
+				.setCustomId(
+					this.getCustomId(Constants.EMBED_BUTTON_QUEUE_PREVIOUS),
+				)
 				.setLabel('←')
 				.setStyle('SECONDARY')
 				.setDisabled(!isPreviousEnabled),
 			new MessageButton()
-				.setCustomId(Constants.EMBED_BUTTON_QUEUE_NEXT)
+				.setCustomId(
+					this.getCustomId(Constants.EMBED_BUTTON_QUEUE_NEXT),
+				)
 				.setLabel('→')
 				.setStyle('SECONDARY')
 				.setDisabled(!isNextEnabled),
