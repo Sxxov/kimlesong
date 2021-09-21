@@ -1,5 +1,5 @@
 import type { MessageEmbed } from 'discord.js';
-import { State } from '../../../state/StateManager.js';
+import { State } from '../../../state/State.js';
 import type { CommandBlueprint } from '../../CommandBlueprint.js';
 import { AbstractCommand } from '../AbstractCommand.js';
 

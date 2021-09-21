@@ -7,7 +7,7 @@ import {
 import type { QueueItem } from '../../../queue/QueueItem.js';
 import { Constants } from '../../../resources/Constants.js';
 import { TimeUtility } from '../../../resources/utilities/time.utility.js';
-import { State } from '../../../state/StateManager.js';
+import { State } from '../../../state/State.js';
 import type { CommandBlueprint } from '../../CommandBlueprint.js';
 import { AbstractCommand } from '../AbstractCommand.js';
 

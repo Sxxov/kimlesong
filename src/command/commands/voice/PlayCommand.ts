@@ -4,7 +4,7 @@ import { ClientSingleton } from '../../../client/ClientSingleton.js';
 import { QueueManager } from '../../../queue/QueueManager.js';
 import { Constants } from '../../../resources/Constants.js';
 import { ClientError } from '../../../resources/errors/ClientError.js';
-import { State } from '../../../state/StateManager.js';
+import { State } from '../../../state/State.js';
 import type { CommandBlueprint } from '../../CommandBlueprint.js';
 import { AbstractCommand } from '../AbstractCommand.js';
 import { QueueCommand } from './QueueCommand.js';

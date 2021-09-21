@@ -11,7 +11,7 @@ import { Log } from '../log/Log.js';
 import JSONdb from 'simple-json-db';
 import { Constants } from '../resources/Constants.js';
 import { YoutubeMoosick } from 'youtube-moosick';
-import { State } from '../state/StateManager.js';
+import { State } from '../state/State.js';
 import { ArrayStore } from '../resources/blocks/classes/store/stores/ArrayStore.js';
 import { CommandManager } from '../command/CommandManager.js';
 import { PlayCommand } from '../command/commands/voice/PlayCommand.js';

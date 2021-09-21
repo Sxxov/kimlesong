@@ -2,7 +2,7 @@ import type { SlashCommandBuilder } from '@discordjs/builders';
 import type { MessageEmbed } from 'discord.js';
 import type { ContinuablePlaylistURL } from 'youtube-moosick';
 import { Constants } from '../../../resources/Constants.js';
-import { State } from '../../../state/StateManager.js';
+import { State } from '../../../state/State.js';
 import type { CommandBlueprint } from '../../CommandBlueprint.js';
 import { AbstractCommand } from '../AbstractCommand.js';
 

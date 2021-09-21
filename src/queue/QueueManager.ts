@@ -3,7 +3,7 @@ import { Song, Video } from 'youtube-moosick';
 import { ArrayStore } from '../resources/blocks/classes/store/stores/ArrayStore.js';
 import { Constants } from '../resources/Constants.js';
 import { IllegalStateError } from '../resources/errors/IllegalStateError.js';
-import { State } from '../state/StateManager.js';
+import { State } from '../state/State.js';
 import { QueueItemAdapter } from './adapters/QueueItemAdapter.js';
 import { InvalidPlaylistError } from './errors/InvalidPlaylistError.js';
 import { InvalidSongError } from './errors/InvalidSongError.js';
