@@ -130,6 +130,15 @@ export class ArrayStore<T = unknown> extends ExtendableStore<T[]> {
 		return this;
 	}
 
+	public append(array: T[]) {
+		const previousLength = this.value.length;
+		const result = this.value.push(...array);
+
+		this.trigger(this.getModified(previousLength, array));
+
+		return result;
+	}
+
 	private getModified(
 		start: number,
 		items: (T | undefined)[],
