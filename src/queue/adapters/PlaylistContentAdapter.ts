@@ -1,21 +1,5 @@
-import { Song, Video } from 'youtube-moosick';
-import type { PlaylistContent } from 'youtube-moosick';
-import { UnsupportedOperationError } from '../../resources/errors/UnsupportedOperationError.js';
-
+import type { Song, Video, PlaylistContent } from 'youtube-moosick';
 export class PlaylistContentAdapter {
-	public static adapt(item: Song | Video): PlaylistContent {
-		switch (true) {
-			case item instanceof Song:
-				return this.adaptSong(item as Song);
-			case item instanceof Video:
-				return this.adaptVideo(item as Video);
-			default:
-				throw new UnsupportedOperationError(
-					'Attempted to adapt unknown type',
-				);
-		}
-	}
-
 	public static adaptSong(song: Song): PlaylistContent {
 		return {
 			artist: song.artist,
