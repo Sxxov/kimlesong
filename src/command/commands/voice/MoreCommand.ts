@@ -7,13 +7,15 @@ import type { CommandBlueprint } from '../../CommandBlueprint.js';
 import { AbstractCommand } from '../AbstractCommand.js';
 
 export class MoreCommand extends AbstractCommand {
-	public name = 'more';
-	public description = 'Load more of the large playlist in the queue.';
-	public aliases = ['m'];
+	public static override id = 'more';
+	public static override description =
+		'Load more of the large playlist in the queue.';
 
-	public override build(): SlashCommandBuilder {
+	public static override aliases = ['m'];
+
+	public static override getSlashCommand(): SlashCommandBuilder {
 		return super
-			.build()
+			.getSlashCommand()
 			.addStringOption((option) =>
 				option
 					.setName(Constants.SLASH_ARGUMENT_NAME)
@@ -40,16 +42,18 @@ export class MoreCommand extends AbstractCommand {
 		return null;
 	}
 
-	public override async reply(info: CommandBlueprint): Promise<MessageEmbed> {
+	public override async getEmbed(
+		info: CommandBlueprint,
+	): Promise<MessageEmbed> {
 		const playlist = MoreCommand.more();
 
 		if (playlist?.headers?.playlistName == null) {
-			return (await super.reply(info)).setDescription(
+			return (await super.getEmbed(info)).setDescription(
 				'nothing more to load.',
 			);
 		}
 
-		return (await super.reply(info)).setDescription(
+		return (await super.getEmbed(info)).setDescription(
 			`loading more from "${playlist?.headers?.playlistName}"...`,
 		);
 	}

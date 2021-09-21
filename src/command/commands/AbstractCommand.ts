@@ -6,11 +6,12 @@ import { ClientError } from '../../resources/errors/ClientError.js';
 import type { CommandBlueprint } from '../CommandBlueprint.js';
 
 export abstract class AbstractCommand {
-	protected static EMBED_ERROR_500 = new MessageEmbed()
+	// #region error constants
+	private static EMBED_ERROR_500 = new MessageEmbed()
 		.setColor(Constants.EMBED_COLOUR)
 		.setAuthor(
-			Constants.EMBED_AUTHOR_NAME,
-			Constants.EMBED_AUTHOR_IMAGE,
+			this.getAuthorName(),
+			this.getAuthorImage(),
 			Constants.EMBED_AUTHOR_URL,
 		)
 		.setTitle(Constants.EMBED_TITLE_ERROR_INTERNAL)
@@ -18,64 +19,90 @@ export abstract class AbstractCommand {
 			"something went wrong, the server room caught fire; it's (probably) not your fault.",
 		);
 
-	public static EMBED_ERROR_404 = new MessageEmbed()
+	private static EMBED_ERROR_404 = new MessageEmbed()
 		.setColor(Constants.EMBED_COLOUR)
 		.setAuthor(
-			Constants.EMBED_AUTHOR_NAME,
-			Constants.EMBED_AUTHOR_IMAGE,
+			this.getAuthorName(),
+			this.getAuthorImage(),
 			Constants.EMBED_AUTHOR_URL,
 		)
 		.setTitle(Constants.EMBED_TITLE_ERROR_USER)
-		.setDescription("that command doesn't seem to exist, try `!help`");
+		.setDescription("that command doesn't seem to exist, try `!help`.");
 
-	public static EMBED_ERROR_400 = new MessageEmbed()
+	private static EMBED_ERROR_400 = new MessageEmbed()
 		.setColor(Constants.EMBED_COLOUR)
 		.setAuthor(
-			Constants.EMBED_AUTHOR_NAME,
-			Constants.EMBED_AUTHOR_IMAGE,
+			this.getAuthorName(),
+			this.getAuthorImage(),
 			Constants.EMBED_AUTHOR_URL,
 		)
 		.setTitle(Constants.EMBED_TITLE_ERROR_USER)
-		.setDescription("that command doesn't look right lol, try again");
+		.setDescription("that command doesn't look right lol, try again.");
 
-	public abstract name: string;
-	public abstract description: string;
-	public abstract aliases: string[];
-	public actionIds: string[] = [];
+	private static EMBED_ERROR_420 = new MessageEmbed()
+		.setColor(Constants.EMBED_COLOUR)
+		.setAuthor(
+			this.getAuthorName(),
+			this.getAuthorImage(),
+			Constants.EMBED_AUTHOR_URL,
+		)
+		.setTitle(Constants.EMBED_TITLE_ERROR_USER)
+		.setDescription("you don't seem to be in a voice channel, try again.");
+
+	// #endregion
+
+	public static id: string;
+	public static description: string;
+	public static aliases: string[] = [];
+	public static actionIds: string[] = [];
+
+	public Class = this.constructor as typeof AbstractCommand;
 
 	// eslint-disable-next-line @typescript-eslint/no-unused-vars
-	public async reply(info: CommandBlueprint) {
+	public async getEmbed(info: CommandBlueprint) {
 		return new MessageEmbed()
 			.setColor(Constants.EMBED_COLOUR)
 			.setAuthor(
-				Constants.EMBED_AUTHOR_NAME,
-				Constants.EMBED_AUTHOR_IMAGE,
+				this.Class.getAuthorName(),
+				this.Class.getAuthorImage(),
 				Constants.EMBED_AUTHOR_URL,
 			)
-			.setTitle(this.name);
+			.setTitle(this.Class.id);
 	}
 
 	// eslint-disable-next-line @typescript-eslint/no-unused-vars
 	public async act(info: ButtonInteraction) {}
 
 	// eslint-disable-next-line @typescript-eslint/no-unused-vars
-	public async action(info: CommandBlueprint) {
+	public async getAction(info: CommandBlueprint) {
 		return new MessageActionRow();
 	}
 
-	public build(): SlashCommandBuilder {
+	public static getSlashCommand(): SlashCommandBuilder {
 		return new SlashCommandBuilder()
-			.setName(this.name)
+			.setName(this.id)
 			.setDescription(this.description);
 	}
 
-	protected errorInternal() {
+	protected static getAuthorImage(): string {
+		return Constants.EMBED_AUTHOR_DEFAULT_IMAGE;
+	}
+
+	protected static getAuthorName() {
+		return '\u200B';
+	}
+
+	public static errorUser(code: 400 | 404 | 420) {
+		return this[`EMBED_ERROR_${code}`];
+	}
+
+	protected static errorInternal() {
 		Log.error(
 			new ClientError(
 				'Encountered an internal error while trying to reply',
 			).stack,
 		);
 
-		return AbstractCommand.EMBED_ERROR_500;
+		return this.EMBED_ERROR_500;
 	}
 }

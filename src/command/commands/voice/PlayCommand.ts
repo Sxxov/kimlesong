@@ -10,23 +10,23 @@ import { AbstractCommand } from '../AbstractCommand.js';
 import { QueueCommand } from './QueueCommand.js';
 
 export class PlayCommand extends AbstractCommand {
-	public name = 'play';
-	public description =
+	public static override id = 'play';
+	public static override description =
 		'Plays the requested song/playlist from Youtube/Spotify';
 
-	public aliases = ['p'];
+	public static override aliases = ['p'];
 
 	public async onAddLargePlaylist(): Promise<MessageEmbed> {
-		return (await super.reply(undefined as unknown as CommandBlueprint))
+		return (await super.getEmbed(undefined as unknown as CommandBlueprint))
 			.setTitle('oh a large playlist!')
 			.setDescription(
 				'not all items are added at once. they will be added as the first few songs play, feel free to view the progress in the queue.',
 			);
 	}
 
-	public override build(): SlashCommandBuilder {
+	public static override getSlashCommand(): SlashCommandBuilder {
 		return super
-			.build()
+			.getSlashCommand()
 			.addStringOption((option) =>
 				option
 					.setName(Constants.SLASH_ARGUMENT_NAME)
@@ -35,10 +35,12 @@ export class PlayCommand extends AbstractCommand {
 			) as SlashCommandBuilder;
 	}
 
-	public override async reply(info: CommandBlueprint): Promise<MessageEmbed> {
+	public override async getEmbed(
+		info: CommandBlueprint,
+	): Promise<MessageEmbed> {
 		const queue = State.guildIdToQueue.get(info.guildId!);
 
-		if (queue == null) return this.errorInternal();
+		if (queue == null) return PlayCommand.errorInternal();
 
 		try {
 			const [first, ...rest] = await new QueueManager(
@@ -46,14 +48,14 @@ export class PlayCommand extends AbstractCommand {
 				ClientSingleton.ytm,
 			).appendQueueFromSearch(info.argument);
 
-			return (await super.reply(info)).setDescription(
+			return (await super.getEmbed(info)).setDescription(
 				`${QueueCommand.stringifyQueueItem(first)}${
 					rest.length > 0 ? `\n\n+ ${rest.length} more` : ''
 				}`,
 			);
 		} catch (err: unknown) {
 			if (err instanceof ClientError) {
-				return (await super.reply(info))
+				return (await super.getEmbed(info))
 					.setTitle(Constants.EMBED_TITLE_ERROR_USER)
 					.setDescription(err.message);
 			}

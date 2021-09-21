@@ -7,36 +7,29 @@ import type { CommandBlueprint } from './CommandBlueprint.js';
 import { Log } from '../log/Log.js';
 import type { ButtonInteraction } from 'discord.js';
 import { ClientSingleton } from '../client/ClientSingleton.js';
-import { Constants } from '../resources/Constants.js';
 
 const GlobalCommands = Object.values(GlobalCommandObj);
-const globalCommands = GlobalCommands.map(
-	(Command) => new (Command as new () => AbstractCommand)(),
-);
-
 const VoiceCommands = Object.values(VoiceCommandObj);
-const voiceCommands = VoiceCommands.map(
-	(Command) => new (Command as new () => AbstractCommand)(),
-);
-
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const AllCommands = [...GlobalCommands, ...VoiceCommands];
-const allCommands = [...globalCommands, ...voiceCommands];
 
 export class CommandManager {
 	public rest: REST;
+	private messageIdToCommandInstanceCache = new Map<
+		string,
+		AbstractCommand
+	>();
 
 	constructor(private token: string, private clientId: string) {
 		this.rest = new REST({ version: '9' }).setToken(this.token);
 	}
 
 	public async act(interaction: ButtonInteraction) {
-		for (const command of allCommands) {
-			if (command.actionIds.includes(interaction.customId)) {
-				await command.act(interaction);
+		for (const Command of AllCommands) {
+			if (Command.actionIds.includes(interaction.customId)) {
+				await new Command().act(interaction);
 
 				Log.debug(
-					`Action: ${command.name} @ ${interaction.guildId ?? '?'}`,
+					`Action: ${Command.id} @ ${interaction.guildId ?? '?'}`,
 				);
 
 				return;
@@ -45,56 +38,63 @@ export class CommandManager {
 	}
 
 	public async run(info: CommandBlueprint) {
-		const isCallingCommand = (command: AbstractCommand) =>
-			command.name === info.command
-			|| command.aliases.includes(info.command);
-		const reply = async (command: AbstractCommand) => {
-			const messageActionRow = await command.action(info);
+		const isCallingCommand = (Command: typeof AbstractCommand) =>
+			Command.id === info.command
+			|| Command.aliases.includes(info.command);
+		const reply = async (Command: new () => AbstractCommand) => {
+			const command = new Command();
+			const messageActionRow = await command.getAction(info);
+
+			if (messageActionRow.components.length > 0) {
+				this.messageIdToCommandInstanceCache.set(
+					info.messageId,
+					command,
+				);
+			}
 
 			await info.reply({
 				options: {},
-				embeds: [await command.reply(info)],
+				embeds: [await command.getEmbed(info)],
 				components:
 					messageActionRow.components.length > 0
 						? [messageActionRow]
 						: undefined,
 			});
 
-			Log.debug(`Reply: ${command.name} @ ${info.guildId ?? '?'}`);
+			Log.debug(`Reply: ${command.Class.id} @ ${info.guildId ?? '?'}`);
 		};
 
-		for (const command of voiceCommands) {
-			if (!isCallingCommand(command)) continue;
+		for (const Command of VoiceCommands) {
+			if (!isCallingCommand(Command)) continue;
 
 			const voiceChannel = ClientSingleton.client.guilds.cache
 				.get(info.guildId!)
 				?.members.cache.get(info.userId!)?.voice.channel;
 
 			if (voiceChannel == null) {
-				(await command.reply(info))
-					.setTitle(Constants.EMBED_TITLE_ERROR_USER)
-					.setDescription(
-						"you don't seem to be in a voice channel, try again.",
-					);
+				await info.reply({
+					options: {},
+					embeds: [Command.errorUser(420)],
+				});
 
 				return;
 			}
 
-			await reply(command);
+			await reply(Command);
 
 			return;
 		}
 
-		for (const command of globalCommands) {
-			if (!isCallingCommand(command)) continue;
+		for (const Command of GlobalCommands) {
+			if (!isCallingCommand(Command)) continue;
 
-			await reply(command);
+			await reply(Command);
 
 			return;
 		}
 
 		await info.reply({
-			embeds: [AbstractCommand.EMBED_ERROR_404],
+			embeds: [AbstractCommand.errorUser(404)],
 		});
 	}
 
@@ -102,17 +102,16 @@ export class CommandManager {
 		await this.rest.put(
 			Routes.applicationGuildCommands(this.clientId, guildId),
 			{
-				body: allCommands
-					.map((command) => (command.name ? command.build() : false))
-					// filter out invalid commands (AbstractCommand)
-					.filter(Boolean),
+				body: AllCommands.map((Command) =>
+					Command.id ? Command.getSlashCommand() : false,
+				),
 			},
 		);
 
 		Log.debug(
-			`Registered: ${allCommands
-				.map((command) => `${command.name}`)
-				.join(', ')} @ ${guildId}`,
+			`Registered: ${AllCommands.map((Command) => `${Command.id}`).join(
+				', ',
+			)} @ ${guildId}`,
 		);
 	}
 }

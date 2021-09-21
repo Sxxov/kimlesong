@@ -1,21 +1,17 @@
-import {
-	ButtonInteraction,
-	Message,
-	MessageButton,
-	MessageEmbed,
-} from 'discord.js';
+import { ButtonInteraction, MessageButton, MessageEmbed } from 'discord.js';
 import type { QueueItem } from '../../../queue/QueueItem.js';
 import { Constants } from '../../../resources/Constants.js';
 import { TimeUtility } from '../../../resources/utilities/time.utility.js';
 import { State } from '../../../state/State.js';
+import { CommandBlueprintAdapter } from '../../adapters/CommandBlueprintAdapter.js';
 import type { CommandBlueprint } from '../../CommandBlueprint.js';
 import { AbstractCommand } from '../AbstractCommand.js';
 
 export class QueueCommand extends AbstractCommand {
-	public name = 'queue';
-	public description = 'Shows the current queue';
-	public aliases = ['q'];
-	public override actionIds = [
+	public static override id = 'queue';
+	public static override description = 'Shows the current queue';
+	public static override aliases = ['q'];
+	public static override actionIds = [
 		Constants.EMBED_BUTTON_QUEUE_NEXT,
 		Constants.EMBED_BUTTON_QUEUE_PREVIOUS,
 	] as string[];
@@ -24,14 +20,14 @@ export class QueueCommand extends AbstractCommand {
 		throw new Error('Method not implemented.');
 	}
 
-	public override async reply(
+	public override async getEmbed(
 		info: CommandBlueprint,
 		offset = 0,
 	): Promise<MessageEmbed> {
 		const queue = State.guildIdToQueue.get(info.guildId!);
 		const timeout = State.guildIdToQueueMoreTimeout.get(info.guildId!);
 
-		if (queue == null) return this.errorInternal();
+		if (queue == null) return QueueCommand.errorInternal();
 
 		const nextPlaylistMore = timeout
 			? Date.now() +
@@ -42,7 +38,7 @@ export class QueueCommand extends AbstractCommand {
 			  Number((timeout as any)._idleTimeout)
 			: 0;
 
-		const reply = (await super.reply(info))
+		const reply = (await super.getEmbed(info))
 			.setDescription(
 				`${queue.length} item${queue.length === 1 ? '' : 's'}${
 					nextPlaylistMore > Date.now()
@@ -109,7 +105,7 @@ export class QueueCommand extends AbstractCommand {
 		if (interaction.message.embeds[0].footer?.text == null) {
 			await interaction.reply({
 				options: {},
-				embeds: [this.errorInternal()],
+				embeds: [QueueCommand.errorInternal()],
 			});
 		}
 
@@ -131,37 +127,34 @@ export class QueueCommand extends AbstractCommand {
 			--curr;
 		}
 
-		const info = {
-			argument: '',
-			channelId: interaction.channelId,
-			command: this.name,
-			guildId: interaction.guildId,
-			reply: interaction.update.bind(interaction) as Message['reply'],
-			userId: interaction.user.id,
-		};
+		const info: CommandBlueprint =
+			CommandBlueprintAdapter.adaptButtonInteraction(
+				interaction,
+				QueueCommand.id,
+			);
 		const isPreviousEnabled = curr > 1;
 		const isNextEnabled = curr < total;
 
 		await interaction.update({
 			options: {},
 			embeds: [
-				await this.reply(
+				await this.getEmbed(
 					info,
 					(curr - 1) * Constants.COMMAND_QUEUE_PAGE_SIZE,
 				),
 			],
 			components: [
-				await this.action(info, isPreviousEnabled, isNextEnabled),
+				await this.getAction(info, isPreviousEnabled, isNextEnabled),
 			],
 		});
 	}
 
-	public override async action(
+	public override async getAction(
 		info: CommandBlueprint,
 		isPreviousEnabled = false,
 		isNextEnabled = true,
 	) {
-		return (await super.action(info)).addComponents(
+		return (await super.getAction(info)).addComponents(
 			new MessageButton()
 				.setCustomId(Constants.EMBED_BUTTON_QUEUE_PREVIOUS)
 				.setLabel('←')
