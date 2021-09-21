@@ -1,7 +1,7 @@
 import { Song, Video } from 'youtube-moosick';
 import type { PlaylistContent } from 'youtube-moosick';
 import { UnsupportedOperationError } from '../../resources/errors/UnsupportedOperationError.js';
-import type { QueueItem } from '../QueueItem.js';
+import { QueueItem } from '../QueueItem.js';
 
 export class QueueItemAdapter {
 	public static adapt(item: Song | Video | PlaylistContent): QueueItem {
@@ -18,31 +18,31 @@ export class QueueItemAdapter {
 	}
 
 	public static adaptSong(song: Song): QueueItem {
-		return {
+		return QueueItem.from({
 			artist: song.artist.map((artist) => artist.name).join(', '),
 			title: song.name,
 			id: song.videoId,
 			duration: song.duration,
 			playlistId: song.playlistId,
 			url: song.url,
-		};
+		});
 	}
 
 	public static adaptVideo(video: Video): QueueItem {
-		return {
+		return QueueItem.from({
 			artist: video.author.map((artist) => artist.name).join(', '),
 			title: video.name,
 			id: video.videoId,
 			duration: video.length,
 			url: video.url,
-		};
+		});
 	}
 
 	public static adaptPlaylistContent(
 		playlistContent: PlaylistContent,
 		playlistId: string,
 	): QueueItem {
-		return {
+		return QueueItem.from({
 			artist: playlistContent.artist
 				.map((artist) => artist.name)
 				.join(', '),
@@ -53,6 +53,6 @@ export class QueueItemAdapter {
 			url: `https://www.youtube.com/watch?v=${
 				playlistContent.trackId ?? 'dQw4w9WgXcQ'
 			}&list=${playlistId}`,
-		};
+		});
 	}
 }
