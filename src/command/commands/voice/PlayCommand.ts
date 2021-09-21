@@ -40,17 +40,6 @@ export class PlayCommand extends AbstractCommand {
 
 		if (queue == null) return this.errorInternal();
 
-		const voiceChannel = ClientSingleton.client.guilds.cache
-			.get(info.guildId!)
-			?.members.cache.get(info.userId!)?.voice.channel;
-
-		if (voiceChannel == null)
-			return (await super.reply(info))
-				.setTitle(Constants.EMBED_TITLE_ERROR_USER)
-				.setDescription(
-					"you don't seem to be in a voice channel, try again.",
-				);
-
 		try {
 			const [first, ...rest] = await new QueueManager(
 				info.guildId!,
