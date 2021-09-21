@@ -122,12 +122,17 @@ export class ClientSingleton {
 		if (interaction.isCommand()) {
 			await this.commandManager.run({
 				...interaction,
+				userId: interaction.user.id,
 				argument:
 					interaction.options.getString(Constants.SLASH_ARGUMENT_NAME)
 					?? '',
 				command: interaction.commandName,
 				reply: interaction.reply.bind(interaction) as Message['reply'],
 			});
+		}
+
+		if (interaction.isButton()) {
+			await this.commandManager.act(interaction);
 		}
 	}
 
@@ -140,22 +145,26 @@ export class ClientSingleton {
 
 		if (!message.content.startsWith(prefix)) return;
 
-		const content = message.content.substr(prefix.length).trim();
-		const [, command, , argument] = /^(\w+)( )?(.*)?$/.exec(content) ?? [];
+		for (const line of message.content.split('\n')) {
+			const content = line.substr(prefix.length).trim();
+			const [, command, , argument] =
+				/^(\w+)( )?(.*)?$/.exec(content) ?? [];
 
-		if (message.guildId && message.channelId) {
-			State.guildIdToQueueChannelId.set(
-				message.guildId,
-				message.channelId,
-			);
+			if (message.guildId && message.channelId) {
+				State.guildIdToQueueChannelId.set(
+					message.guildId,
+					message.channelId,
+				);
+			}
+
+			await this.commandManager.run({
+				...message,
+				userId: message.member?.id ?? null,
+				argument,
+				command,
+				reply: message.reply.bind(message),
+			});
 		}
-
-		await this.commandManager.run({
-			argument,
-			command,
-			...message,
-			reply: message.reply.bind(message),
-		});
 	}
 
 	@listener
