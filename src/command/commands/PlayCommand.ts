@@ -3,6 +3,7 @@ import type { MessageEmbed } from 'discord.js';
 import { ClientSingleton } from '../../client/ClientSingleton.js';
 import { QueueManager } from '../../queue/QueueManager.js';
 import { Constants } from '../../resources/Constants.js';
+import { ClientError } from '../../resources/errors/ClientError.js';
 import { State } from '../../state/StateManager.js';
 import type { CommandBlueprint } from '../CommandBlueprint.js';
 import { AbstractCommand } from './AbstractCommand.js';
@@ -39,15 +40,36 @@ export class PlayCommand extends AbstractCommand {
 
 		if (queue == null) return this.errorInternal();
 
-		const [first, ...rest] = await new QueueManager(
-			info.guildId!,
-			ClientSingleton.ytm,
-		).appendQueueFromSearch(info.argument);
+		const voiceChannel = ClientSingleton.client.guilds.cache
+			.get(info.guildId!)
+			?.members.cache.get(info.userId!)?.voice.channel;
 
-		return (await super.reply(info)).setDescription(
-			`${QueueCommand.stringifyQueueItem(first)}${
-				rest.length > 0 ? `\n\n+ ${rest.length} more` : ''
-			}`,
-		);
+		if (voiceChannel == null)
+			return (await super.reply(info))
+				.setTitle(Constants.EMBED_TITLE_ERROR_USER)
+				.setDescription(
+					"you don't seem to be in a voice channel, try again.",
+				);
+
+		try {
+			const [first, ...rest] = await new QueueManager(
+				info.guildId!,
+				ClientSingleton.ytm,
+			).appendQueueFromSearch(info.argument);
+
+			return (await super.reply(info)).setDescription(
+				`${QueueCommand.stringifyQueueItem(first)}${
+					rest.length > 0 ? `\n\n+ ${rest.length} more` : ''
+				}`,
+			);
+		} catch (err: unknown) {
+			if (err instanceof ClientError) {
+				return (await super.reply(info))
+					.setTitle(Constants.EMBED_TITLE_ERROR_USER)
+					.setDescription(err.message);
+			}
+
+			throw err;
+		}
 	}
 }
