@@ -37,7 +37,8 @@ export class QueueManager {
 			switch (url.hostname) {
 				case Constants.SPOTIFY_HOSTNAME:
 					return this.createQueueFromSpotifyURL(url);
-				case Constants.YOUTUBE_HOSTNAME_WWW:
+				case Constants.YOUTUBE_MUSIC_HOSTNAME:
+				case Constants.YOUTUBE_WWW_HOSTNAME:
 				case Constants.YOUTUBE_HOSTNAME:
 					return this.createQueueFromYoutubeURL(url);
 				default:
