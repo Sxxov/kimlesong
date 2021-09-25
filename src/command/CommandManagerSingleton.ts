@@ -11,6 +11,7 @@ import type { ClientCredentialsItem } from '../client/ClientCredentialsItem.js';
 import type { AbstractGlobalCommand } from './commands/AbstractGlobalCommand.js';
 import type { AbstractVoiceCommand } from './commands/AbstractVoiceCommand.js';
 import { State } from '../state/State.js';
+import { EmbedErrorCodes } from '../resources/enums/EmbedErrorCodes.js';
 
 const GlobalCommands = Object.values(GlobalCommandObj);
 const VoiceCommands = Object.values(VoiceCommandObj);
@@ -83,19 +84,21 @@ export class CommandManagerSingleton {
 			if (voiceChannelId == null) {
 				await info.reply({
 					options: {},
-					embeds: [Command.errorUser(420)],
+					embeds: [
+						Command.errorUser(
+							EmbedErrorCodes.CHANNEL_NOT_CONNECTED,
+						),
+					],
 				});
 
 				return;
 			}
 
-			const targetVC = State.voiceChannels.find(
-				(vc) => vc.id === voiceChannelId,
-			);
+			const targetVC = State.guildIdToVoiceChannel.get(info.guildId!);
 
 			if (targetVC == null) {
 				await info.reply({
-					embeds: [Command.errorUser(426)],
+					embeds: [Command.errorUser(EmbedErrorCodes.NOT_PLAYING)],
 				});
 
 				return;
@@ -117,7 +120,9 @@ export class CommandManagerSingleton {
 		}
 
 		await info.reply({
-			embeds: [AbstractCommand.errorUser(405)],
+			embeds: [
+				AbstractCommand.errorUser(EmbedErrorCodes.COMMAND_NOT_FOUND),
+			],
 		});
 	}
 

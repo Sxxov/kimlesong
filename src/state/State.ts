@@ -4,6 +4,7 @@ import {
 	Storify,
 } from '../resources/blocks/classes/store/Store.js';
 import { ArrayStore } from '../resources/blocks/classes/store/stores/ArrayStore.js';
+import { MapStore } from '../resources/blocks/classes/store/stores/MapStore.js';
 import type { GuildState } from './states/GuildState.js';
 import type { VoiceChannelState } from './states/VoiceChannelState.js';
 
@@ -38,6 +39,8 @@ export const State: {
 
 export class States {
 	@contextual public static guilds = new ArrayStore<GuildState>();
-	@contextual public static voiceChannels =
-		new ArrayStore<VoiceChannelState>();
+	@contextual public static guildIdToVoiceChannel = new MapStore<
+		string,
+		VoiceChannelState
+	>();
 }

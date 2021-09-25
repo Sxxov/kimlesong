@@ -11,7 +11,7 @@ export class CrashHandlerSingleton {
 	}
 
 	private static onError(err: Error, origin: NodeJS.UncaughtExceptionOrigin) {
-		State.voiceChannels.forEach((vc) => {
+		State.guildIdToVoiceChannel.forEach((vc) => {
 			try {
 				void vc.lastCommandBlueprint?.reply({
 					embeds: [AbstractCommand.errorInternal(503)],

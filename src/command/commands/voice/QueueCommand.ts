@@ -1,5 +1,5 @@
 import { ButtonInteraction, MessageButton, MessageEmbed } from 'discord.js';
-import { Constants } from '../../../resources/Constants.js';
+import { Constants } from '../../../resources/enums/Constants.js';
 import { TimeUtility } from '../../../resources/utilities/time.utility.js';
 import { CommandBlueprintAdapter } from '../../adapters/CommandBlueprintAdapter.js';
 import type { CommandBlueprint } from '../../CommandBlueprint.js';

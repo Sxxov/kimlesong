@@ -3,7 +3,8 @@ import type { Message, MessageEmbed, TextBasedChannels } from 'discord.js';
 import { ClientSingleton } from '../../../client/ClientSingleton.js';
 import type { QueueItem } from '../../../queue/QueueItem.js';
 import { QueueManager } from '../../../queue/QueueManager.js';
-import { Constants } from '../../../resources/Constants.js';
+import { Constants } from '../../../resources/enums/Constants.js';
+import { EmbedErrorCodes } from '../../../resources/enums/EmbedErrorCodes.js';
 import { ClientError } from '../../../resources/errors/ClientError.js';
 import { State } from '../../../state/State.js';
 import { VoiceManager } from '../../../voice/VoiceManager.js';
@@ -40,6 +41,12 @@ export class PlayCommand extends AbstractGlobalCommand {
 		info: CommandBlueprint,
 	): Promise<MessageEmbed[]> {
 		try {
+			if (State.guildIdToVoiceChannel.has(info.guildId!)) {
+				return [
+					this.Class.errorUser(EmbedErrorCodes.IS_ALREADY_PLAYING),
+				];
+			}
+
 			const guild = ClientSingleton.client.guilds.cache.get(
 				info.guildId!,
 			);
@@ -50,19 +57,16 @@ export class PlayCommand extends AbstractGlobalCommand {
 
 			const voiceChannel = user.voice.channel;
 
-			if (voiceChannel == null) return [this.Class.errorUser(420)];
+			if (voiceChannel == null)
+				return [
+					this.Class.errorUser(EmbedErrorCodes.CHANNEL_NOT_CONNECTED),
+				];
 			if (voiceChannel.type !== 'GUILD_VOICE')
-				return [this.Class.errorUser(406)];
+				return [
+					this.Class.errorUser(EmbedErrorCodes.CHANNEL_NOT_SUPPORTED),
+				];
 
 			const voiceChannelId = voiceChannel.id;
-
-			// TODO(sxxov): BUG: disconnecting doesn't clear vcstate from state
-			// TODO(sxxov): BUG: failing to play a song won't join but will still register a state, blocking the bot from joining any other servers
-			// TODO(sxxov): this impl will only allow 1 channels for ALL guilds
-			// TODO(sxxov): this is a temp fix for the vc state
-			if (State.voiceChannels.length >= 1) {
-				return [this.Class.errorUser(423)];
-			}
 
 			const permissions = voiceChannel.permissionsFor(user);
 
@@ -71,11 +75,16 @@ export class PlayCommand extends AbstractGlobalCommand {
 				|| !permissions.has('CONNECT')
 				|| !permissions.has('SPEAK')
 			)
-				return [this.Class.errorUser(403)];
+				return [
+					this.Class.errorUser(EmbedErrorCodes.COMMAND_NO_PERMISSION),
+				];
 
 			const voiceChannelState =
 				ClientSingleton.voiceChannelStateFactory.create(voiceChannelId);
-			State.voiceChannels.push(voiceChannelState);
+			State.guildIdToVoiceChannel.set(
+				voiceChannelState.guildId,
+				voiceChannelState,
+			);
 			const lastNows: Message[] = [];
 			let lastQueueItem: QueueItem;
 			const unsubscribe = voiceChannelState.queue.subscribeLazy(
@@ -107,7 +116,9 @@ export class PlayCommand extends AbstractGlobalCommand {
 					if (skipNow) return;
 
 					if (queue.length <= 0) {
-						State.voiceChannels.remove(voiceChannelState);
+						State.guildIdToVoiceChannel.delete(
+							voiceChannelState.guildId,
+						);
 						unsubscribe();
 
 						try {
@@ -153,7 +164,7 @@ export class PlayCommand extends AbstractGlobalCommand {
 			).appendQueueFromSearch(info.argument);
 
 			if (queuedItems.length <= 0) {
-				return [this.Class.errorUser(404)];
+				return [this.Class.errorUser(EmbedErrorCodes.SONG_NOT_FOUND)];
 			}
 
 			const embeds = [];

@@ -1,4 +1,5 @@
 import type { MessageEmbed } from 'discord.js';
+import { State } from '../../../state/State.js';
 import type { CommandBlueprint } from '../../CommandBlueprint.js';
 import { AbstractVoiceCommand } from '../AbstractVoiceCommand.js';
 
@@ -21,6 +22,8 @@ export class DisconnectCommand extends AbstractVoiceCommand {
 		queuedPlaylistsTimeouts.forEach((timeout) => {
 			clearTimeout(timeout);
 		});
+
+		State.guildIdToVoiceChannel.delete(info.guildId!);
 
 		return (await super.getEmbed(info)).setDescription(
 			'disconnected & cleared the queue.',

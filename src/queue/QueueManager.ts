@@ -1,5 +1,5 @@
 import { Song, Video } from 'youtube-moosick';
-import { Constants } from '../resources/Constants.js';
+import { Constants } from '../resources/enums/Constants.js';
 import type { VoiceChannelState } from '../state/states/VoiceChannelState.js';
 import { QueueItemAdapter } from './adapters/QueueItemAdapter.js';
 import { InvalidPlaylistError } from './errors/InvalidPlaylistError.js';

@@ -1,6 +1,7 @@
 import type { SlashCommandBuilder } from '@discordjs/builders';
 import type { MessageEmbed } from 'discord.js';
-import { Constants } from '../../../resources/Constants.js';
+import { Constants } from '../../../resources/enums/Constants.js';
+import { EmbedErrorCodes } from '../../../resources/enums/EmbedErrorCodes.js';
 import type { CommandBlueprint } from '../../CommandBlueprint.js';
 import { AbstractVoiceCommand } from '../AbstractVoiceCommand.js';
 
@@ -30,7 +31,7 @@ export class SkipCommand extends AbstractVoiceCommand {
 		if (queue == null) return SkipCommand.errorInternal();
 
 		if (queue.length <= 0) {
-			return this.Class.errorUser(426);
+			return this.Class.errorUser(EmbedErrorCodes.NOT_PLAYING);
 		}
 
 		const skipped = queue.splice(0, Number(info.argument) || 1);

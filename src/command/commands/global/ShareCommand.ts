@@ -1,5 +1,5 @@
 import type { MessageEmbed } from 'discord.js';
-import { Constants } from '../../../resources/Constants.js';
+import { Constants } from '../../../resources/enums/Constants.js';
 import type { CommandBlueprint } from '../../CommandBlueprint.js';
 import { AbstractGlobalCommand } from '../AbstractGlobalCommand.js';
 

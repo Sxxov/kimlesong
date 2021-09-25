@@ -8,7 +8,8 @@ import {
 	MessagePayload,
 } from 'discord.js';
 import { Log } from '../../log/Log.js';
-import { Constants } from '../../resources/Constants.js';
+import { Constants } from '../../resources/enums/Constants.js';
+import type { EmbedErrorCodes } from '../../resources/enums/EmbedErrorCodes.js';
 import { ClientError } from '../../resources/errors/ClientError.js';
 import type { CommandBlueprint } from '../CommandBlueprint.js';
 
@@ -205,9 +206,7 @@ export abstract class AbstractCommand {
 		return '\u200B';
 	}
 
-	public static errorUser(
-		code: 400 | 404 | 405 | 420 | 426 | 403 | 406 | 423,
-	) {
+	public static errorUser(code: EmbedErrorCodes) {
 		return this[`EMBED_ERROR_${code}`];
 	}
 
