@@ -23,7 +23,7 @@ export class MapStore<K = string, V = unknown> extends ExtendableStore<
 	public override set(key: K, value: V): this {
 		this.value.set(key, value);
 
-		this.trigger([key, value]);
+		this.trigger();
 
 		return this;
 	}
@@ -36,7 +36,7 @@ export class MapStore<K = string, V = unknown> extends ExtendableStore<
 		const result = this.value.delete(key);
 
 		if (result) {
-			this.trigger([key, undefined]);
+			this.trigger();
 		}
 
 		return result;
@@ -46,20 +46,6 @@ export class MapStore<K = string, V = unknown> extends ExtendableStore<
 		this.value.clear();
 
 		this.trigger();
-	}
-
-	public override subscribe(
-		run: (value: Map<K, V>, modified?: [K, V]) => void,
-		invalidate = () => {},
-	): () => void {
-		return super.subscribe(run, invalidate);
-	}
-
-	public override subscribeLazy(
-		run: (value: Map<K, V>, modified?: [K, V]) => void,
-		invalidate = () => {},
-	): () => void {
-		return super.subscribeLazy(run, invalidate);
 	}
 
 	public getOrAssign(key: K, value: V) {

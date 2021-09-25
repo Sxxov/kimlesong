@@ -24,28 +24,26 @@ export class ArrayStore<T = unknown> extends ExtendableStore<T[]> {
 	}
 
 	public removeAt(index: number): void {
-		const spliced = this.value.splice(index, 1);
+		this.value.splice(index, 1);
 
-		this.trigger(this.getModified(-index, spliced));
+		this.trigger();
 	}
 
 	public remove(...items: T[]): void {
-		const modified = new Array<T | undefined>(this.value.length);
-
 		items.forEach((item) => {
 			const indexOfItem = this.value.indexOf(item);
-			const spliced = this.value.splice(indexOfItem, 1);
-
-			modified[-indexOfItem] = spliced[0];
+			this.value.splice(indexOfItem, 1);
 		});
 
-		this.trigger(modified);
+		this.trigger();
 	}
 
-	public setAt(index: number, newValue: T): void {
+	public setAt(index: number, newValue: T): T {
 		this.value[index] = newValue;
 
-		this.trigger(this.getModified(index, [newValue]));
+		this.trigger();
+
+		return newValue;
 	}
 
 	public getAt(index: number): T {
@@ -53,10 +51,9 @@ export class ArrayStore<T = unknown> extends ExtendableStore<T[]> {
 	}
 
 	public push(...items: T[]): number {
-		const previousLength = this.value.length;
 		const result = this.value.push(...items);
 
-		this.trigger(this.getModified(previousLength, items));
+		this.trigger();
 
 		return result;
 	}
@@ -64,7 +61,7 @@ export class ArrayStore<T = unknown> extends ExtendableStore<T[]> {
 	public pop(): T | undefined {
 		const result = this.value.pop();
 
-		this.trigger(this.getModified(-this.value.length, [result]));
+		this.trigger();
 
 		return result;
 	}
@@ -72,7 +69,7 @@ export class ArrayStore<T = unknown> extends ExtendableStore<T[]> {
 	public shift(): T | undefined {
 		const result = this.value.shift();
 
-		this.trigger(this.getModified(-0, [result]));
+		this.trigger();
 
 		return result;
 	}
@@ -80,7 +77,7 @@ export class ArrayStore<T = unknown> extends ExtendableStore<T[]> {
 	public unshift(...items: T[]): number {
 		const result = this.value.unshift(...items);
 
-		this.trigger(this.getModified(0, items));
+		this.trigger();
 
 		return result;
 	}
@@ -101,15 +98,7 @@ export class ArrayStore<T = unknown> extends ExtendableStore<T[]> {
 				? this.value.splice(start, deleteCount!, ...replacements)
 				: this.value.splice(start, deleteCount);
 
-		this.trigger(
-			this.getModified(
-				-start,
-				result,
-				replacements.length > 0
-					? this.getModified(start, replacements)
-					: undefined,
-			),
-		);
+		this.trigger();
 
 		return result;
 	}
@@ -117,7 +106,7 @@ export class ArrayStore<T = unknown> extends ExtendableStore<T[]> {
 	public reverse(): T[] {
 		this.value.reverse();
 
-		this.trigger(this.value);
+		this.trigger();
 
 		return this;
 	}
@@ -125,59 +114,16 @@ export class ArrayStore<T = unknown> extends ExtendableStore<T[]> {
 	public sort(compareFn?: (a: T, b: T) => number): this {
 		this.value.sort(compareFn);
 
-		this.trigger(this.value);
+		this.trigger();
 
 		return this;
 	}
 
 	public append(array: T[]) {
-		const previousLength = this.value.length;
 		const result = this.value.push(...array);
 
-		this.trigger(this.getModified(previousLength, array));
+		this.trigger();
 
 		return result;
-	}
-
-	private getModified(
-		start: number,
-		items: (T | undefined)[],
-		arr = new Array<T | undefined>(
-			start > this.value.length ? start : this.value.length,
-		),
-	) {
-		if (!(items instanceof Array)) return arr;
-
-		const increment = Math.sign(start) || 1;
-
-		if (Object.is(start, -0) && items.length > 0) {
-			// @ts-expect-error force assign -0
-			arr['-0'] = items[0];
-			start += increment;
-		}
-
-		for (
-			let i = start, l = (items.length + start) * increment;
-			i < l;
-			i += increment
-		) {
-			arr[i] = items[i - start];
-		}
-
-		return arr;
-	}
-
-	public override subscribe(
-		run: (value: T[], modified?: (T | undefined)[]) => void,
-		invalidate = () => {},
-	): () => void {
-		return super.subscribe(run, invalidate);
-	}
-
-	public override subscribeLazy(
-		run: (value: T[], modified?: (T | undefined)[]) => void,
-		invalidate = () => {},
-	): () => void {
-		return super.subscribeLazy(run, invalidate);
 	}
 }

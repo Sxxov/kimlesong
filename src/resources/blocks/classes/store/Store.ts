@@ -2,7 +2,7 @@
 
 import { AbstractStore } from './stores/AbstractStore.js';
 
-type Subscriber<T> = [(value: T, modified?: any) => void, () => void];
+type Subscriber<T> = [(value: T) => void, () => void];
 export type Storify<T> = T extends infer U ? Store<U> : never;
 
 export const STORE_SET_KEY = Symbol('set');
@@ -39,7 +39,7 @@ export class Store<T = unknown> extends AbstractStore<T> {
 		this[STORE_SET_KEY](newValue);
 	}
 
-	public trigger(modified?: any): void {
+	public trigger(): void {
 		if (!this.stop) {
 			return;
 		}
@@ -60,7 +60,6 @@ export class Store<T = unknown> extends AbstractStore<T> {
 			for (let i = 0; i < this.subscriberQueue.length; i += 2) {
 				(this.subscriberQueue[i] as Subscriber<T>)[0](
 					this.subscriberQueue[i + 1] as T,
-					modified,
 				);
 			}
 
