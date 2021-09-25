@@ -1,5 +1,8 @@
 export const enum Constants {
 	DEFAULT_PREFIX = '!',
+	DEFAULT_NICKNAME = 'kimlesong (unstable)',
+
+	SHARE_URL = 'https://discord.com/oauth2/authorize?client_id=889171586760998942&permissions=2150631424&scope=bot%20applications.commands',
 
 	SPOTIFY_HOSTNAME = 'open.spotify.com',
 	SPOTIFY_PATHNAME_SONG = '/track',
@@ -7,7 +10,8 @@ export const enum Constants {
 	SPOTIFY_PATHNAME_ALBUM = '/album',
 
 	YOUTUBE_HOSTNAME = 'youtube.com',
-	YOUTUBE_HOSTNAME_WWW = 'www.youtube.com',
+	YOUTUBE_WWW_HOSTNAME = 'www.youtube.com',
+	YOUTUBE_MUSIC_HOSTNAME = 'music.youtube.com',
 	YOUTUBE_PATHNAME_SONG = '/watch',
 	YOUTUBE_PATHNAME_PLAYLIST = '/playlist',
 
