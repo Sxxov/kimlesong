@@ -101,6 +101,8 @@ export class CommandManagerSingleton {
 				return;
 			}
 
+			targetVC.lastCommandBlueprint = info;
+
 			await reply(new Command(targetVC));
 
 			return;

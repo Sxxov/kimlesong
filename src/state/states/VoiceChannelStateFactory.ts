@@ -10,6 +10,11 @@ export class VoiceChannelStateFactory {
 			client: this.client,
 			ytm: this.ytm,
 			id,
+			guildId: this.client.guilds.cache.find((guild) =>
+				Boolean(
+					guild.channels.cache.find((channel) => channel.id === id),
+				),
+			)!.id,
 		});
 	}
 }
