@@ -28,7 +28,7 @@ export class QueueCommand extends AbstractVoiceCommand {
 
 		let nextTimeoutSinceProcessStart = Infinity;
 		for (let i = 0, l = queuedPlaylistsTimeouts.length; i < l; ++i) {
-			const queuedPlaylistsTimeout = queuedPlaylistsTimeouts.at(i);
+			const queuedPlaylistsTimeout = queuedPlaylistsTimeouts.getAt(i);
 
 			const timeoutSinceProcessStart =
 				// eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
@@ -83,11 +83,13 @@ export class QueueCommand extends AbstractVoiceCommand {
 		}
 
 		if (queue.length > 0) {
-			const queueItem = queue.at(0)!;
+			const queueItem = queue.getAt(0)!;
 
 			reply.addField(
 				queueItem.title,
-				`[\`00.\` ](${queueItem.url}) by ${
+				`[\`00.\` ](${
+					queueItem.url
+				} "${queueItem.getSimpleTitle()}") by ${
 					queueItem.artist
 				} — \`${TimeUtility.hhmmss(queueItem.duration)}\``,
 			);
@@ -106,7 +108,9 @@ export class QueueCommand extends AbstractVoiceCommand {
 						value: `[\`${String(i + 1 + offset).padStart(
 							2,
 							'0',
-						)}.\`](${queueItem.url}) by ${
+						)}.\`](${
+							queueItem.url
+						} "${queueItem.getSimpleTitle()}") by ${
 							queueItem.artist
 						} — \`${TimeUtility.hhmmss(queueItem.duration)}\``,
 					})),
