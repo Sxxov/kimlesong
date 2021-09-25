@@ -17,6 +17,15 @@ const client = new Client({
 		Intents.FLAGS.GUILD_MESSAGES,
 		Intents.FLAGS.GUILD_VOICE_STATES,
 	],
+	presence: {
+		status: 'dnd',
+		activities: [
+			{
+				name: 'ur mom',
+				type: 'LISTENING',
+			},
+		],
+	},
 });
 const ytm = await YoutubeMoosick.new();
 const prefixDb = new JSONdb<string>('./db/prefix/v1.json');
