@@ -10,14 +10,20 @@ export class QueueItem extends Item {
 	public declare url: string;
 
 	public override readonly toString = () => {
-		return `${this.artist} - ${this.title} — ${TimeUtility.hhmmss(
+		return `${this.getSimpleTitle()} — ${TimeUtility.hhmmss(
 			this.duration,
 		)}`;
 	};
 
 	public readonly toMarkdown = () => {
-		return `[${this.artist} - ${this.title}](${
+		return `[${this.getSimpleTitle()}](${
 			this.url
 		}) — \`${TimeUtility.hhmmss(this.duration)}\``;
+	};
+
+	public readonly getSimpleTitle = () => {
+		return this.title.includes(' - ')
+			? this.title
+			: `${this.artist} - ${this.title}`;
 	};
 }
