@@ -1,17 +1,19 @@
 import { Worker } from 'worker_threads';
 import * as pathTool from 'path';
 import { fileURLToPath } from 'url';
-import type { ClientCredentialsItem } from '../client/ClientCredentialsItem.js';
 
-export class ClientWorkerFactory {
-	public create(credentials: ClientCredentialsItem) {
+export class WorkerFactory {
+	constructor(private path: string) {}
+
+	public create(workerData?: any) {
 		return new Worker(
 			pathTool.join(
 				pathTool.dirname(fileURLToPath(import.meta.url)),
-				'ClientWorker.js',
+				this.path,
 			),
 			{
-				workerData: credentials,
+				// eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+				workerData,
 			},
 		);
 	}
