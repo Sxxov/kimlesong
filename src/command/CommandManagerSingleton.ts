@@ -13,7 +13,6 @@ import type { AbstractVoiceCommand } from './commands/AbstractVoiceCommand.js';
 import { State } from '../state/State.js';
 import { EmbedErrorCodes } from '../resources/enums/EmbedErrorCodes.js';
 import { TrafficRequester } from '../traffic/TrafficRequester.js';
-import { ErrorMessageEmbed } from './ErrorMessageEmbed.js';
 import { PlayCommand } from './commands/global';
 
 const GlobalCommands = Object.values(GlobalCommandObj);
@@ -60,7 +59,7 @@ export class CommandManagerSingleton {
 		const isCallingCommand = (
 			Command: typeof AbstractGlobalCommand | typeof AbstractVoiceCommand,
 		) =>
-			Command.id === info.commandId
+			Command.id.toLowerCase() === info.commandId.toLowerCase()
 			|| Command.aliases.includes(info.commandId);
 		const replyCommand = async (command: AbstractCommand) => {
 			const messageActionRow = await command.getAction(info);
@@ -73,7 +72,15 @@ export class CommandManagerSingleton {
 			}
 
 			if (command.Class === PlayCommand) {
-				if (State.guildIdToVoiceChannel.has(info.guildId!)) {
+				const vcState = State.guildIdToVoiceChannel.get(info.guildId!);
+				if (
+					vcState
+					&& vcState.id
+						=== vcState.client.guilds.cache
+							.get(info.guildId ?? '')
+							?.members.cache.get(info.userId ?? '')?.voice
+							.channelId
+				) {
 					if (await TrafficRequester.request(info.id))
 						await reply(await command.getReply(info));
 				} else if (await TrafficRequester.requestError(info.id))
@@ -87,14 +94,6 @@ export class CommandManagerSingleton {
 		};
 
 		const reply = async (reply: MessageOptions) => {
-			if (
-				(reply.embeds?.[0] as ErrorMessageEmbed)[
-					ErrorMessageEmbed.IS_ERROR as keyof ErrorMessageEmbed
-				]
-				&& !(await TrafficRequester.requestError(info.id))
-			)
-				return;
-
 			await info.reply(reply);
 
 			Log.debug(
@@ -110,13 +109,14 @@ export class CommandManagerSingleton {
 				?.members.cache.get(info.userId!)?.voice.channelId;
 
 			if (voiceChannelId == null) {
-				await reply({
-					embeds: [
-						Command.errorUser(
-							EmbedErrorCodes.CHANNEL_NOT_CONNECTED,
-						),
-					],
-				});
+				if (await TrafficRequester.requestError(info.id))
+					await reply({
+						embeds: [
+							Command.errorUser(
+								EmbedErrorCodes.CHANNEL_NOT_CONNECTED,
+							),
+						],
+					});
 
 				return;
 			}
@@ -124,9 +124,12 @@ export class CommandManagerSingleton {
 			const targetVC = State.guildIdToVoiceChannel.get(info.guildId!);
 
 			if (targetVC == null || targetVC.id !== voiceChannelId) {
-				await reply({
-					embeds: [Command.errorUser(EmbedErrorCodes.NOT_PLAYING)],
-				});
+				if (await TrafficRequester.requestError(info.id))
+					await reply({
+						embeds: [
+							Command.errorUser(EmbedErrorCodes.NOT_PLAYING),
+						],
+					});
 
 				return;
 			}
@@ -146,11 +149,14 @@ export class CommandManagerSingleton {
 			return;
 		}
 
-		await reply({
-			embeds: [
-				AbstractCommand.errorUser(EmbedErrorCodes.COMMAND_NOT_FOUND),
-			],
-		});
+		if (await TrafficRequester.requestError(info.id))
+			await reply({
+				embeds: [
+					AbstractCommand.errorUser(
+						EmbedErrorCodes.COMMAND_NOT_FOUND,
+					),
+				],
+			});
 	}
 
 	public static async registerCommands(
