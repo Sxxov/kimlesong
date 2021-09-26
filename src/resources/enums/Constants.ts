@@ -24,7 +24,12 @@ export const enum Constants {
 	EMBED_TITLE_ERROR_USER = 'oops!',
 
 	EMBED_BUTTON_QUEUE_NEXT = 'queue.next',
+	EMBED_BUTTON_QUEUE_REFRESH = 'queue.refresh',
 	EMBED_BUTTON_QUEUE_PREVIOUS = 'queue.previous',
+
+	EMBED_BUTTON_NOW_NEXT = 'now.next',
+	EMBED_BUTTON_NOW_REPEAT = 'now.repeat',
+	EMBED_BUTTON_NOW_PREVIOUS = 'now.previous',
 
 	SLASH_ARGUMENT_NAME = 'stuff',
 
