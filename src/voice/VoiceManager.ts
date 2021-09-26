@@ -1,5 +1,6 @@
 import {
 	AudioPlayerStatus,
+	AudioResource,
 	createAudioPlayer,
 	createAudioResource,
 	entersState,
@@ -11,17 +12,20 @@ import {
 } from '@discordjs/voice';
 import type { VoiceChannel } from 'discord.js';
 import ytdl from 'discord-ytdl-core';
-import type { QueueItem } from '../queue/QueueItem.js';
-import type { VoiceChannelState } from '../state/states/VoiceChannelState.js';
+import type { SyncQueueItem } from '../queue/SyncQueueItem.js';
+import type { VoiceChannelState } from './VoiceChannelState.js';
 import { DiscordJSVoiceAdapterFactory } from './DiscordJSVoiceAdapterFactory.js';
 import { JoinFailureError } from './errors/JoinFailureError.js';
 import { PlayFailureError } from './errors/PlayFailureError.js';
 import { Log } from '../log/Log.js';
+import type { AsyncQueueItem } from '../queue/AsyncQueueItem.js';
 
 export class VoiceManager {
 	private connection: VoiceConnection | null = null;
 	private player = createAudioPlayer();
-	private currentQueueItem: QueueItem | null = null;
+	private audio: AudioResource | null = null;
+	private currentQueueItem: AsyncQueueItem | SyncQueueItem | null = null;
+	public isQueuePaused = false;
 
 	constructor(
 		private channel: VoiceChannel,
@@ -31,6 +35,7 @@ export class VoiceManager {
 	public async stop() {
 		this.connection?.destroy();
 		this.connection = null;
+		this.audio = null;
 	}
 
 	public async playQueue() {
@@ -45,7 +50,13 @@ export class VoiceManager {
 				);
 				if (queue[0] !== this.currentQueueItem) {
 					if (queue[0] == null) {
-						unsubscribe();
+						try {
+							// if it's not defined yet
+							unsubscribe();
+						} catch {
+							setTimeout(unsubscribe);
+						}
+
 						await this.stop();
 						resolve();
 
@@ -56,7 +67,7 @@ export class VoiceManager {
 
 					try {
 						const { currentQueueItem } = this;
-						this.player.stop();
+						this.player.stop(true);
 						await this.play(this.currentQueueItem);
 
 						if (currentQueueItem === this.currentQueueItem) {
@@ -75,25 +86,45 @@ export class VoiceManager {
 		});
 	}
 
-	public async play(queueItem: QueueItem) {
+	public setVolume(volume: number) {
+		const clampedVolume = Math.max(0, Math.min(volume, 1));
+
+		this.audio?.volume?.setVolume(clampedVolume);
+
+		return clampedVolume;
+	}
+
+	public pauseQueue() {
+		this.isQueuePaused = true;
+		return this.player.pause();
+	}
+
+	public resumeQueue() {
+		this.isQueuePaused = false;
+		return this.player.unpause();
+	}
+
+	public async play(queueItem: AsyncQueueItem | SyncQueueItem) {
 		await this.connect();
 
 		if (this.connection == null) {
 			throw new JoinFailureError();
 		}
 
-		const readable = ytdl(queueItem.url, {
+		const url = await queueItem.url;
+		const readable = ytdl(url, {
 			highWaterMark: 32 * 1024 * 1024,
 			filter: 'audioonly',
 			opusEncoded: true,
 			encoderArgs: [],
 		});
+		this.audio = createAudioResource(readable, {
+			inputType: StreamType.Opus,
+			inlineVolume: true,
+		});
+		this.audio.volume?.setVolume(0.5);
 
-		this.player.play(
-			createAudioResource(readable, {
-				inputType: StreamType.Opus,
-			}),
-		);
+		this.player.play(this.audio);
 
 		try {
 			await entersState(this.player, AudioPlayerStatus.Playing, 5000);
@@ -136,6 +167,14 @@ export class VoiceManager {
 								5_000,
 							);
 							// Probably moved voice channel
+
+							// change state id to new voice channel
+							this.state.id =
+								this.state.client.guilds.cache
+									.get(this.state.guildId)
+									?.members.cache.get(
+										this.state.client.user?.id ?? '',
+									)?.voice.channelId ?? this.state.id;
 						} catch {
 							await this.stop();
 							// Probably removed from voice channel
