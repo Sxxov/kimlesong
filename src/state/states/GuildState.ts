@@ -1,9 +1,16 @@
+import type { Guild } from 'discord.js';
 import type { ClientCredentialsItem } from '../../client/ClientCredentialsItem.js';
 import { CommandManagerSingleton } from '../../command/CommandManagerSingleton.js';
+import { Constants } from '../../resources/enums/Constants.js';
 
 export class GuildState {
-	constructor(public id: string, private credentials: ClientCredentialsItem) {
-		void CommandManagerSingleton.registerCommands(id, credentials);
+	public id: string;
+
+	constructor(guild: Guild, private credentials: ClientCredentialsItem) {
+		this.id = guild.id;
+
+		void CommandManagerSingleton.registerCommands(guild.id, credentials);
+		guild.me?.setNickname(Constants.DEFAULT_NICKNAME);
 	}
 
 	public destroy() {}

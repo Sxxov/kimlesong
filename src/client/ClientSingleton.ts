@@ -69,7 +69,7 @@ export class ClientSingleton {
 
 		State.guilds.append(
 			client.guilds.cache.map(
-				(guild) => new GuildState(guild.id, this.credentials),
+				(guild) => new GuildState(guild, this.credentials),
 			),
 		);
 	}
@@ -113,7 +113,7 @@ export class ClientSingleton {
 
 	@listener
 	public static async onGuildCreate(guild: Guild) {
-		State.guilds.push(new GuildState(guild.id, this.credentials));
+		State.guilds.push(new GuildState(guild, this.credentials));
 	}
 
 	@listener
