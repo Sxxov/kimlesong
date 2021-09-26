@@ -4,8 +4,8 @@ import type { CommandBlueprint } from '../../CommandBlueprint.js';
 import { AbstractVoiceCommand } from '../AbstractVoiceCommand.js';
 
 export class RepeatCommand extends AbstractVoiceCommand {
-	public static override id = 'repeat';
-	public static override description = 'repeats the current song';
+	public static override id = 'replay';
+	public static override description = 'replays the current song.';
 	public static override aliases = ['r'];
 
 	public override async getEmbed(
@@ -24,7 +24,7 @@ export class RepeatCommand extends AbstractVoiceCommand {
 		if (current) this.ctx.queue.splice(0, 1, current.clone());
 
 		return (await super.getEmbed(info)).setDescription(
-			`repeating ${current.toMarkdown()}.`,
+			`repeating ${await current.toMarkdown()}.`,
 		);
 	}
 }
