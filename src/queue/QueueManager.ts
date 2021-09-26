@@ -1,4 +1,5 @@
 import { Song, Video } from 'youtube-moosick';
+import ytdl from 'ytdl-core';
 import { Constants } from '../resources/enums/Constants.js';
 import type { VoiceChannelState } from '../state/states/VoiceChannelState.js';
 import { QueueItemAdapter } from './adapters/QueueItemAdapter.js';
@@ -22,6 +23,7 @@ export class QueueManager {
 	private async createQueueFromSearch(
 		searchString: string,
 	): Promise<QueueItem[]> {
+		if (!searchString) return [];
 		if (
 			searchString.startsWith('http://')
 			|| searchString.startsWith('https://')
@@ -162,24 +164,12 @@ export class QueueManager {
 
 	private async createQueueFromYoutubeSongId(
 		id: string,
+		playlistId?: string,
 	): Promise<QueueItem[]> {
-		const results = await this.ctx.ytm.search(id);
+		const { videoDetails } = await ytdl.getBasicInfo(
+			`https://${Constants.YOUTUBE_HOSTNAME}${Constants.YOUTUBE_PATHNAME_SONG}?v=${id}`,
+		);
 
-		for (let i = 0, l = results.length; i < l; ++i) {
-			const result = results[i];
-
-			// use if statements to assert type
-
-			if (result instanceof Song) {
-				return [QueueItemAdapter.adaptSong(result)];
-			}
-
-			if (result instanceof Video) {
-				return [QueueItemAdapter.adaptVideo(result)];
-			}
-		}
-
-		// looped through search results & somehow didn't find the song
-		throw new InvalidSongError();
+		return [QueueItemAdapter.adaptVideoDetails(videoDetails, playlistId)];
 	}
 }

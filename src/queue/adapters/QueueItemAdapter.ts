@@ -2,6 +2,8 @@ import { Song, Video } from 'youtube-moosick';
 import type { PlaylistContent } from 'youtube-moosick';
 import { UnsupportedOperationError } from '../../resources/errors/UnsupportedOperationError.js';
 import { QueueItem } from '../QueueItem.js';
+import type { MoreVideoDetails } from 'ytdl-core';
+import { Constants } from '../../resources/enums/Constants.js';
 
 export class QueueItemAdapter {
 	public static adapt(item: Song | Video | PlaylistContent): QueueItem {
@@ -50,9 +52,27 @@ export class QueueItemAdapter {
 			id: playlistContent.trackId!,
 			duration: playlistContent.duration,
 			playlistId,
-			url: `https://www.youtube.com/watch?v=${
-				playlistContent.trackId ?? 'dQw4w9WgXcQ'
-			}&list=${playlistId}`,
+			url: `https://${Constants.YOUTUBE_HOSTNAME}${
+				Constants.YOUTUBE_PATHNAME_SONG
+			}?v=${playlistContent.trackId ?? 'dQw4w9WgXcQ'}&list=${playlistId}`,
+		});
+	}
+
+	public static adaptVideoDetails(
+		videoDetails: MoreVideoDetails,
+		playlistId?: string,
+	): QueueItem {
+		return QueueItem.from({
+			artist: videoDetails.author.name,
+			title: videoDetails.title,
+			id: videoDetails.videoId,
+			duration: Number(videoDetails.lengthSeconds) * 1000,
+			url: `https://${Constants.YOUTUBE_HOSTNAME}${
+				Constants.YOUTUBE_PATHNAME_SONG
+			}?v=${videoDetails.videoId}${
+				playlistId ? `&list=${playlistId}` : ''
+			}`,
+			playlistId,
 		});
 	}
 }
