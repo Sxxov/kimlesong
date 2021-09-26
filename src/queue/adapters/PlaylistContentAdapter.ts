@@ -1,4 +1,4 @@
-import type { Song, Video, PlaylistContent } from 'youtube-moosick';
+import { Song, Video, PlaylistContent, Artist } from 'youtube-moosick';
 export class PlaylistContentAdapter {
 	public static adaptSong(song: Song): PlaylistContent {
 		return {
@@ -17,6 +17,25 @@ export class PlaylistContentAdapter {
 			trackTitle: video.name,
 			trackId: video.videoId,
 			duration: video.length,
+		};
+	}
+
+	public static adaptSpotifyTrack(
+		track: SpotifyApi.TrackObjectSimplified,
+	): PlaylistContent {
+		return {
+			artist: track.artists.map((artist) =>
+				Artist.from({
+					browseId: '',
+					name: artist.name,
+					url: '',
+				}),
+			),
+			thumbnail: [],
+			trackTitle: track.name,
+			// STUB
+			trackId: '',
+			duration: track.duration_ms,
 		};
 	}
 }
