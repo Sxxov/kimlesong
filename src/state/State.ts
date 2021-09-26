@@ -5,8 +5,8 @@ import {
 } from '../resources/blocks/classes/store/Store.js';
 import { ArrayStore } from '../resources/blocks/classes/store/stores/ArrayStore.js';
 import { MapStore } from '../resources/blocks/classes/store/stores/MapStore.js';
-import type { GuildState } from './states/GuildState.js';
-import type { VoiceChannelState } from './states/VoiceChannelState.js';
+import type { GuildState } from '../client/GuildState.js';
+import type { VoiceChannelState } from '../voice/VoiceChannelState.js';
 
 function contextual(target: typeof States, name: keyof typeof State.s): void {
 	// no need to define extra setter (like set/get decorators)
