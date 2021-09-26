@@ -7,8 +7,8 @@ import { Constants } from '../../../resources/enums/Constants.js';
 import { EmbedErrorCodes } from '../../../resources/enums/EmbedErrorCodes.js';
 import { ClientError } from '../../../resources/errors/ClientError.js';
 import { State } from '../../../state/State.js';
-import { VoiceManager } from '../../../voice/VoiceManager.js';
 import type { CommandBlueprint } from '../../CommandBlueprint.js';
+import { CommandManagerSingleton } from '../../CommandManagerSingleton.js';
 import { AbstractGlobalCommand } from '../AbstractGlobalCommand.js';
 import { NowCommand } from '../voice/NowCommand.js';
 
@@ -18,13 +18,6 @@ export class PlayCommand extends AbstractGlobalCommand {
 		'Plays the requested song/playlist from Youtube/Spotify';
 
 	public static override aliases = ['p'];
-
-	// TODO(sxxov): fix undefined behaviour when bot is summoned to another channel
-	// make it so that only people inside the vc can interact with the bot
-	// eg. when kls is in channel A, & someone joins channel B thn summons kls,
-	// kls 1 will verify that command is coming from a user that's in a different vc & ignore & mark it is "WILL_NOT_HANDLE"
-	// kls 2 will be free & handle that command & mark it as "HANDLED"
-	// kls 3 will see that the command is handled & ignore
 
 	public static override getSlashCommand(): SlashCommandBuilder {
 		return super
@@ -41,12 +34,6 @@ export class PlayCommand extends AbstractGlobalCommand {
 		info: CommandBlueprint,
 	): Promise<MessageEmbed[]> {
 		try {
-			if (State.guildIdToVoiceChannel.has(info.guildId!)) {
-				return [
-					this.Class.errorUser(EmbedErrorCodes.IS_ALREADY_PLAYING),
-				];
-			}
-
 			const guild = ClientSingleton.client.guilds.cache.get(
 				info.guildId!,
 			);
@@ -79,24 +66,32 @@ export class PlayCommand extends AbstractGlobalCommand {
 					this.Class.errorUser(EmbedErrorCodes.COMMAND_NO_PERMISSION),
 				];
 
-			const voiceChannelState =
-				ClientSingleton.voiceChannelStateFactory.create(voiceChannelId);
-			State.guildIdToVoiceChannel.set(
-				voiceChannelState.guildId,
-				voiceChannelState,
-			);
-			const lastNows: Message[] = [];
+			let voiceChannelState = State.guildIdToVoiceChannel.get(guild.id)!;
+
+			if (voiceChannelState == null) {
+				voiceChannelState =
+					ClientSingleton.voiceChannelStateFactory.create(
+						voiceChannelId,
+					);
+				State.guildIdToVoiceChannel.set(
+					voiceChannelState.guildId,
+					voiceChannelState,
+				);
+			}
+
+			const lastNows: NowCommand[] = [];
+			const lastNowMessages: Message[] = [];
 			let lastQueueItem: QueueItem;
 			const unsubscribe = voiceChannelState.queue.subscribeLazy(
 				async (queue) => {
 					if (queue[0]?.url === lastQueueItem?.url) return;
 
-					let lastNow: Message | undefined;
+					let lastNowMessage: Message | undefined;
 					let skipNow = false;
 
-					while ((lastNow = lastNows.shift())) {
+					while ((lastNowMessage = lastNowMessages.shift())) {
 						if (
-							lastNow?.embeds[0].description?.includes(
+							lastNowMessage?.embeds[0].description?.includes(
 								queue[0]?.url,
 							)
 						) {
@@ -105,7 +100,13 @@ export class PlayCommand extends AbstractGlobalCommand {
 						}
 
 						try {
-							await lastNow?.delete();
+							await lastNowMessage?.delete();
+
+							const lastNow = lastNows.shift();
+
+							CommandManagerSingleton.commandInstanceIdToInstanceCache.delete(
+								Number(lastNow?.instanceId),
+							);
 						} catch {}
 
 						await new Promise((resolve) => {
@@ -141,19 +142,20 @@ export class PlayCommand extends AbstractGlobalCommand {
 							);
 					} catch {}
 
-					lastNows.push(
-						await (
-							guild.channels.cache.get(
-								info.channelId ?? '',
-							) as TextBasedChannels
-						).send({
-							embeds: [
-								await new NowCommand(
-									voiceChannelState,
-								).getEmbed(info),
-							],
-						}),
+					const now = new NowCommand(voiceChannelState);
+					const nowReply = await now.getReply(info);
+					const nowMessage = await (
+						guild.channels.cache.get(
+							info.channelId ?? '',
+						) as TextBasedChannels
+					).send(nowReply);
+					CommandManagerSingleton.commandInstanceIdToInstanceCache.set(
+						now.instanceId,
+						now,
 					);
+
+					lastNows.push(now);
+					lastNowMessages.push(nowMessage);
 
 					lastQueueItem = queue[0];
 				},
@@ -194,23 +196,21 @@ export class PlayCommand extends AbstractGlobalCommand {
 				),
 			);
 
-			void new VoiceManager(voiceChannel, voiceChannelState)
-				.playQueue()
-				.catch(async (err) => {
-					if (err instanceof ClientError) {
-						await info.reply({
-							embeds: [
-								(await super.getEmbed(info))
-									.setTitle(Constants.EMBED_TITLE_ERROR_USER)
-									.setDescription(err.message),
-							],
-						});
+			voiceChannelState.voiceManager.playQueue().catch(async (err) => {
+				if (err instanceof ClientError) {
+					await info.reply({
+						embeds: [
+							(await super.getEmbed(info))
+								.setTitle(Constants.EMBED_TITLE_ERROR_USER)
+								.setDescription(err.message),
+						],
+					});
 
-						return;
-					}
+					return;
+				}
 
-					throw err;
-				});
+				throw err;
+			});
 
 			return embeds;
 		} catch (err: unknown) {
