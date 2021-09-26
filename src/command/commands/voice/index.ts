@@ -3,4 +3,7 @@ export * from './QueueCommand.js';
 export * from './SkipCommand.js';
 export * from './ShuffleCommand.js';
 export * from './PreviousCommand.js';
-export * from './RepeatCommand.js';
+export * from './ReplayCommand.js';
+export * from './PauseCommand.js';
+export * from './ResumeCommand.js';
+export * from './VolumeCommand.js';
