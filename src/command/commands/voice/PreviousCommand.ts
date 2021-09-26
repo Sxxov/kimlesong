@@ -7,7 +7,7 @@ import { AbstractVoiceCommand } from '../AbstractVoiceCommand.js';
 
 export class PreviousCommand extends AbstractVoiceCommand {
 	public static override id = 'previous';
-	public static override description = 'plays the previous song';
+	public static override description = 'plays the previous song.';
 	public static override aliases = ['prev', 'a'];
 
 	public static override getSlashCommand(): SlashCommandBuilder {
@@ -36,7 +36,7 @@ export class PreviousCommand extends AbstractVoiceCommand {
 			return this.Class.errorUser(EmbedErrorCodes.INDEX_OUT_OF_BOUNDS);
 		}
 
-		const itemCount = Number(info.argument) || 0;
+		const itemCount = Number(info.argument) || 1;
 
 		const skipped = previousQueue.splice(
 			previousQueue.length - itemCount,
@@ -48,10 +48,10 @@ export class PreviousCommand extends AbstractVoiceCommand {
 		return (await super.getEmbed(info)).setDescription(
 			`rewinded ${
 				skipped.length > 1
-					? `${skipped[skipped.length - 1].toMarkdown()} (+ ${
+					? `${await skipped[skipped.length - 1].toMarkdown()} (+ ${
 							skipped.length - 1
 					  } more)`
-					: skipped[0].toMarkdown()
+					: await skipped[0].toMarkdown()
 			}.`,
 		);
 	}

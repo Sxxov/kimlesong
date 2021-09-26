@@ -4,7 +4,7 @@ import { AbstractVoiceCommand } from '../AbstractVoiceCommand.js';
 
 export class ShuffleCommand extends AbstractVoiceCommand {
 	public static override id = 'shuffle';
-	public static override description = 'shuffles the queue';
+	public static override description = 'shuffles the queue.';
 	public static override aliases = ['x'];
 
 	public override async getEmbed(

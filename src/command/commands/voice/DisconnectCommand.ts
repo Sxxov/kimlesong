@@ -5,8 +5,8 @@ import { AbstractVoiceCommand } from '../AbstractVoiceCommand.js';
 
 export class DisconnectCommand extends AbstractVoiceCommand {
 	public static override id = 'disconnect';
-	public static override description = 'disconnects & clears the queue';
-	public static override aliases = ['d', 'dis'];
+	public static override description = 'disconnects & clears the queue.';
+	public static override aliases = ['dis', 'd'];
 
 	public override async getEmbed(
 		info: CommandBlueprint,

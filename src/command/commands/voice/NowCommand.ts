@@ -6,7 +6,7 @@ import { AbstractVoiceCommand } from '../AbstractVoiceCommand.js';
 
 export class NowCommand extends AbstractVoiceCommand {
 	public static override id = 'now';
-	public static override description = "shows what's playing now";
+	public static override description = "shows what's playing now.";
 	public static override aliases = ['n'];
 
 	public override async getEmbed(
@@ -23,7 +23,7 @@ export class NowCommand extends AbstractVoiceCommand {
 		}
 
 		return (await super.getEmbed(info)).setDescription(
-			`playing ${queue.getAt(0).toMarkdown()}`,
+			`playing ${await queue.getAt(0).toMarkdown()}`,
 		);
 	}
 
@@ -32,10 +32,34 @@ export class NowCommand extends AbstractVoiceCommand {
 			interaction.customId,
 		);
 
-		if (actionId === Constants.EMBED_BUTTON_NOW_REPEAT) {
-			const [current] = this.ctx.queue;
+		const info: CommandBlueprint =
+			CommandBlueprintAdapter.adaptButtonInteraction(
+				interaction,
+				NowCommand.id,
+			);
 
-			if (current) this.ctx.queue.splice(0, 1, current.clone());
+		// update before modifying queue so the message doesn't get deleted before responding
+		await interaction.update({
+			components: [
+				await this.getAction(
+					info,
+					this.ctx.previousQueue.length
+						- (actionId === Constants.EMBED_BUTTON_NOW_PREVIOUS
+							? 1
+							: 0)
+						> 1,
+					this.ctx.queue.length
+						+ (actionId === Constants.EMBED_BUTTON_NOW_NEXT ? 1 : 0)
+						> 1,
+					!this.ctx.voiceManager.isQueuePaused,
+				),
+			],
+		});
+
+		if (actionId === Constants.EMBED_BUTTON_NOW_PLAY) {
+			if (this.ctx.voiceManager.isQueuePaused)
+				this.ctx.voiceManager.resumeQueue();
+			else this.ctx.voiceManager.pauseQueue();
 		}
 
 		if (actionId === Constants.EMBED_BUTTON_NOW_NEXT) {
@@ -49,22 +73,13 @@ export class NowCommand extends AbstractVoiceCommand {
 
 			if (previous) this.ctx.queue.unshift(previous);
 		}
-
-		const info: CommandBlueprint =
-			CommandBlueprintAdapter.adaptButtonInteraction(
-				interaction,
-				NowCommand.id,
-			);
-
-		await interaction.update({
-			components: await this.getActions(info),
-		});
 	}
 
 	public override async getAction(
 		info: CommandBlueprint,
 		isPreviousEnabled = this.ctx.previousQueue.length > 1,
 		isNextEnabled = this.ctx.queue.length > 1,
+		isPaused = this.ctx.voiceManager.isQueuePaused,
 	) {
 		return (await super.getAction(info)).addComponents(
 			new MessageButton()
@@ -75,10 +90,8 @@ export class NowCommand extends AbstractVoiceCommand {
 				.setStyle('SECONDARY')
 				.setDisabled(!isPreviousEnabled),
 			new MessageButton()
-				.setCustomId(
-					this.getCustomId(Constants.EMBED_BUTTON_NOW_REPEAT),
-				)
-				.setLabel('🔁')
+				.setCustomId(this.getCustomId(Constants.EMBED_BUTTON_NOW_PLAY))
+				.setLabel(isPaused ? '▶' : '⏸')
 				.setStyle('SECONDARY'),
 			new MessageButton()
 				.setCustomId(this.getCustomId(Constants.EMBED_BUTTON_NOW_NEXT))
