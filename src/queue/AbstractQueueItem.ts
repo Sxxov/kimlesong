@@ -1,13 +1,13 @@
 import { Item } from '../resources/blocks/classes/item/Item.js';
 import { TimeUtility } from '../resources/utilities/time.utility.js';
 
-export class QueueItem extends Item {
+export abstract class AbstractQueueItem extends Item {
 	public declare title: string;
 	public declare artist: string;
 	public declare duration: number;
-	public declare id: string;
+	public abstract id: string | Promise<string>;
 	public declare playlistId?: string;
-	public declare url: string;
+	public abstract url: string | Promise<string>;
 
 	public override readonly toString = () => {
 		return `${this.getSimpleTitle()} — ${TimeUtility.hhmmss(
@@ -15,11 +15,7 @@ export class QueueItem extends Item {
 		)}`;
 	};
 
-	public readonly toMarkdown = () => {
-		return `[${this.getSimpleTitle()}](${
-			this.url
-		}) — \`${TimeUtility.hhmmss(this.duration)}\``;
-	};
+	public abstract readonly toMarkdown: () => string | Promise<string>;
 
 	public readonly getSimpleTitle = () => {
 		return this.title.includes(' - ')
@@ -27,7 +23,5 @@ export class QueueItem extends Item {
 			: `${this.artist} - ${this.title}`;
 	};
 
-	public readonly clone = (): QueueItem => {
-		return QueueItem.from(this);
-	};
+	public abstract readonly clone: () => AbstractQueueItem;
 }

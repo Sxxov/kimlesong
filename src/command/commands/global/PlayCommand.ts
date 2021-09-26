@@ -1,7 +1,7 @@
 import type { SlashCommandBuilder } from '@discordjs/builders';
 import type { Message, MessageEmbed, TextBasedChannels } from 'discord.js';
 import { ClientSingleton } from '../../../client/ClientSingleton.js';
-import type { QueueItem } from '../../../queue/QueueItem.js';
+import type { SyncQueueItem } from '../../../queue/SyncQueueItem.js';
 import { QueueManager } from '../../../queue/QueueManager.js';
 import { Constants } from '../../../resources/enums/Constants.js';
 import { EmbedErrorCodes } from '../../../resources/enums/EmbedErrorCodes.js';
@@ -11,11 +11,12 @@ import type { CommandBlueprint } from '../../CommandBlueprint.js';
 import { CommandManagerSingleton } from '../../CommandManagerSingleton.js';
 import { AbstractGlobalCommand } from '../AbstractGlobalCommand.js';
 import { NowCommand } from '../voice/NowCommand.js';
+import type { AsyncQueueItem } from '../../../queue/AsyncQueueItem.js';
 
 export class PlayCommand extends AbstractGlobalCommand {
 	public static override id = 'play';
 	public static override description =
-		'Plays the requested song/playlist from Youtube/Spotify';
+		'plays the requested song/playlist/album from youtube/spotify/youtube music.';
 
 	public static override aliases = ['p'];
 
@@ -79,21 +80,35 @@ export class PlayCommand extends AbstractGlobalCommand {
 				);
 			}
 
+			if (voiceChannelId !== voiceChannelState.id) {
+				return [
+					this.Class.errorUser(EmbedErrorCodes.IS_ALREADY_PLAYING),
+				];
+			}
+
 			const lastNows: NowCommand[] = [];
 			const lastNowMessages: Message[] = [];
-			let lastQueueItem: QueueItem;
+			let lastQueueItem: AsyncQueueItem | SyncQueueItem;
 			const unsubscribe = voiceChannelState.queue.subscribeLazy(
 				async (queue) => {
-					if (queue[0]?.url === lastQueueItem?.url) return;
+					const currentQueueItemUrl =
+						(queue[0] as AsyncQueueItem)?.externalUrl
+						?? (await queue[0]?.url);
+					const lastQueueItemUrl =
+						(lastQueueItem as AsyncQueueItem)?.externalUrl
+						?? (await lastQueueItem?.url);
+
+					if (lastQueueItemUrl === currentQueueItemUrl) return;
 
 					let lastNowMessage: Message | undefined;
 					let skipNow = false;
 
 					while ((lastNowMessage = lastNowMessages.shift())) {
+						const url =
+							(queue[0] as AsyncQueueItem)?.externalUrl
+							?? (await queue[0]?.url);
 						if (
-							lastNowMessage?.embeds[0].description?.includes(
-								queue[0]?.url,
-							)
+							lastNowMessage?.embeds[0].description?.includes(url)
 						) {
 							skipNow = true;
 							continue;
@@ -190,7 +205,7 @@ export class PlayCommand extends AbstractGlobalCommand {
 
 			embeds.push(
 				(await super.getEmbed(info)).setDescription(
-					`${first.toMarkdown()}${
+					`${await first.toMarkdown()}${
 						rest.length > 0 ? `\n\n+ ${rest.length} more` : ''
 					}`,
 				),
