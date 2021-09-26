@@ -1,8 +1,8 @@
 export const enum Constants {
 	DEFAULT_PREFIX = '!',
-	DEFAULT_NICKNAME = 'kimlesong (unstable)',
+	DEFAULT_NICKNAME = '𝕜𝕚𝕞𝕝𝕖𝕤𝕠𝕟𝕘',
 
-	SHARE_URLS = '**kimlesong1**: https://discord.com/oauth2/authorize?client_id=889171586760998942&permissions=2150631424&scope=bot%20applications.commands\n**kimlesong2**: https://discord.com/oauth2/authorize?client_id=891457379269488710&permissions=2150631424&scope=bot%20applications.commands',
+	SHARE_URLS = '**kimlesong1**: https://discord.com/oauth2/authorize?client_id=889171586760998942&permissions=2150631424&scope=bot%20applications.commands\n**kimlesong2**: https://discord.com/oauth2/authorize?client_id=891457379269488710&permissions=2150631424&scope=bot%20applications.commands,\n**kimlesong3**: https://discord.com/api/oauth2/authorize?client_id=891613245356507156&permissions=2150631424&scope=bot%20applications.commands',
 
 	SPOTIFY_HOSTNAME = 'open.spotify.com',
 	SPOTIFY_PATHNAME_SONG = '/track',
@@ -28,7 +28,7 @@ export const enum Constants {
 	EMBED_BUTTON_QUEUE_PREVIOUS = 'queue.previous',
 
 	EMBED_BUTTON_NOW_NEXT = 'now.next',
-	EMBED_BUTTON_NOW_REPEAT = 'now.repeat',
+	EMBED_BUTTON_NOW_PLAY = 'now.play',
 	EMBED_BUTTON_NOW_PREVIOUS = 'now.previous',
 
 	SLASH_ARGUMENT_NAME = 'stuff',
