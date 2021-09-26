@@ -1,5 +1,5 @@
 import type { BaseGuildVoiceChannel } from 'discord.js';
-import type { VoiceChannelState } from '../../state/states/VoiceChannelState.js';
+import type { VoiceChannelState } from '../../voice/VoiceChannelState.js';
 import { AbstractCommand } from './AbstractCommand.js';
 
 export class AbstractVoiceCommand extends AbstractCommand {
