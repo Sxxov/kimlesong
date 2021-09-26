@@ -1,4 +1,6 @@
 import { ButtonInteraction, MessageButton, MessageEmbed } from 'discord.js';
+import type { AsyncQueueItem } from '../../../queue/AsyncQueueItem.js';
+import type { SyncQueueItem } from '../../../queue/SyncQueueItem.js';
 import { Constants } from '../../../resources/enums/Constants.js';
 import { TimeUtility } from '../../../resources/utilities/time.utility.js';
 import { CommandBlueprintAdapter } from '../../adapters/CommandBlueprintAdapter.js';
@@ -7,7 +9,7 @@ import { AbstractVoiceCommand } from '../AbstractVoiceCommand.js';
 
 export class QueueCommand extends AbstractVoiceCommand {
 	public static override id = 'queue';
-	public static override description = 'Shows the current queue';
+	public static override description = 'shows the current queue.';
 	public static override aliases = ['q'];
 	public static override actionIds = [
 		Constants.EMBED_BUTTON_QUEUE_NEXT,
@@ -84,12 +86,11 @@ export class QueueCommand extends AbstractVoiceCommand {
 
 		if (queue.length > 0) {
 			const queueItem = queue.getAt(0)!;
+			const url = await queueItem.url;
 
 			reply.addField(
 				queueItem.title,
-				`[\`00.\` ](${
-					queueItem.url
-				} "${queueItem.getSimpleTitle()}") by ${
+				`[\`00.\` ](${url} "${queueItem.getSimpleTitle()}") by ${
 					queueItem.artist
 				} — \`${TimeUtility.hhmmss(queueItem.duration)}\``,
 			);
@@ -109,7 +110,10 @@ export class QueueCommand extends AbstractVoiceCommand {
 							2,
 							'0',
 						)}.\`](${
-							queueItem.url
+							(queueItem as AsyncQueueItem).externalUrl
+								? (queueItem as AsyncQueueItem).externalUrl
+								  ?? '#'
+								: (queueItem as SyncQueueItem).url
 						} "${queueItem.getSimpleTitle()}") by ${
 							queueItem.artist
 						} — \`${TimeUtility.hhmmss(queueItem.duration)}\``,
@@ -183,20 +187,20 @@ export class QueueCommand extends AbstractVoiceCommand {
 				.setCustomId(
 					this.getCustomId(Constants.EMBED_BUTTON_QUEUE_PREVIOUS),
 				)
-				.setLabel('⬅')
+				.setLabel('➖')
 				.setStyle('SECONDARY')
 				.setDisabled(!isPreviousEnabled),
 			new MessageButton()
 				.setCustomId(
 					this.getCustomId(Constants.EMBED_BUTTON_QUEUE_REFRESH),
 				)
-				.setLabel('♻')
+				.setLabel('💫')
 				.setStyle('SECONDARY'),
 			new MessageButton()
 				.setCustomId(
 					this.getCustomId(Constants.EMBED_BUTTON_QUEUE_NEXT),
 				)
-				.setLabel('➡')
+				.setLabel('➕')
 				.setStyle('SECONDARY')
 				.setDisabled(!isNextEnabled),
 		);

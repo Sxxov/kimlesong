@@ -7,7 +7,7 @@ import { AbstractVoiceCommand } from '../AbstractVoiceCommand.js';
 
 export class SkipCommand extends AbstractVoiceCommand {
 	public static override id = 'skip';
-	public static override description = 'skips the current song';
+	public static override description = 'skips the current song.';
 	public static override aliases = ['s'];
 
 	public static override getSlashCommand(): SlashCommandBuilder {
@@ -39,10 +39,10 @@ export class SkipCommand extends AbstractVoiceCommand {
 		return (await super.getEmbed(info)).setDescription(
 			`skipped ${
 				skipped.length > 1
-					? `${skipped[skipped.length - 1].toMarkdown()} (+ ${
+					? `${await skipped[skipped.length - 1].toMarkdown()} (+ ${
 							skipped.length - 1
 					  } more)`
-					: skipped[0].toMarkdown()
+					: await skipped[0].toMarkdown()
 			}.`,
 		);
 	}
