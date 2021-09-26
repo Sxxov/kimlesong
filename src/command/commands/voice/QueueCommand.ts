@@ -2,7 +2,7 @@ import { ButtonInteraction, MessageButton, MessageEmbed } from 'discord.js';
 import type { AsyncQueueItem } from '../../../queue/AsyncQueueItem.js';
 import type { SyncQueueItem } from '../../../queue/SyncQueueItem.js';
 import { Constants } from '../../../resources/enums/Constants.js';
-import { TimeUtility } from '../../../resources/utilities/time.utility.js';
+import { TimeUtility } from '../../../resources/utilities/TimeUtility.js';
 import { CommandBlueprintAdapter } from '../../adapters/CommandBlueprintAdapter.js';
 import type { CommandBlueprint } from '../../CommandBlueprint.js';
 import { AbstractVoiceCommand } from '../AbstractVoiceCommand.js';

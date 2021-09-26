@@ -1,7 +1,7 @@
 import type { MessagePort } from 'worker_threads';
 import type { ContinuableResult, YoutubeMoosick } from 'youtube-moosick';
 import { IllegalStateError } from '../resources/errors/IllegalStateError.js';
-import { WalkUtility } from '../resources/utilities/walk.utility.js';
+import { WalkUtility } from '../resources/utilities/WalkUtility.js';
 import { MoosickContinuationRequest } from './requests/MoosickContinuationRequest.js';
 import { MoosickMethodRequest } from './requests/MoosickMethodRequest.js';
 import { MoosickContinuationResponse } from './responses/MoosickContinuationResponse.js';

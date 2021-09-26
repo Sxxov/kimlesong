@@ -1,5 +1,5 @@
 import { Item } from '../resources/blocks/classes/item/Item.js';
-import { TimeUtility } from '../resources/utilities/time.utility.js';
+import { TimeUtility } from '../resources/utilities/TimeUtility.js';
 
 export abstract class AbstractQueueItem extends Item {
 	public declare title: string;

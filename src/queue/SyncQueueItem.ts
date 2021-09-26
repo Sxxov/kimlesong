@@ -1,4 +1,4 @@
-import { TimeUtility } from '../resources/utilities/time.utility.js';
+import { TimeUtility } from '../resources/utilities/TimeUtility.js';
 import { AbstractQueueItem } from './AbstractQueueItem.js';
 
 export class SyncQueueItem extends AbstractQueueItem {
