@@ -12,6 +12,7 @@ export class CommandBlueprintAdapter {
 		argument: string,
 	): CommandBlueprint {
 		return {
+			id: message.id,
 			channelId: message.channelId,
 			guildId: message.guildId,
 			userId: message.member?.id ?? null,
@@ -25,6 +26,7 @@ export class CommandBlueprintAdapter {
 		interaction: CommandInteraction,
 	): CommandBlueprint {
 		return {
+			id: interaction.id,
 			argument: '',
 			channelId: interaction.channelId,
 			commandId: interaction.commandName,
@@ -39,6 +41,7 @@ export class CommandBlueprintAdapter {
 		commandId: string,
 	): CommandBlueprint {
 		return {
+			id: interaction.id,
 			argument: '',
 			channelId: interaction.channelId,
 			commandId,

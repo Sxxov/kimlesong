@@ -1,9 +1,25 @@
-import './env.js';
-import AbortController from 'abort-controller';
-import { ClientSingleton } from './client/ClientSingleton.js';
-import { CrashHandlerSingleton } from './client/CrashHandlerSingleton.js';
+import type { Worker } from 'worker_threads';
+import { Credentials } from './Credentials.js';
+import { ClientWorkerFactory } from './worker/ClientWorkerFactory.js';
+import type { ClientCredentialsItem } from './client/ClientCredentialsItem.js';
+import { TrafficResponder } from './traffic/TrafficResponder.js';
 
-// eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-(global as any).AbortController = AbortController;
-CrashHandlerSingleton.register();
-await ClientSingleton.client.login(process.env.TOKEN);
+export class KimLeSong {
+	private workers: Worker[] = [];
+	private trafficResponder: TrafficResponder;
+
+	constructor() {
+		Credentials.forEach(this.registerWorker.bind(this));
+
+		this.trafficResponder = new TrafficResponder(this.workers);
+	}
+
+	private registerWorker(credentials: ClientCredentialsItem) {
+		const worker = new ClientWorkerFactory().create(credentials);
+
+		this.workers.push(worker);
+	}
+}
+
+// eslint-disable-next-line no-new
+new KimLeSong();

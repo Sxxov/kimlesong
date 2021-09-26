@@ -5,13 +5,15 @@ import * as VoiceCommandObj from './commands/voice';
 import { AbstractCommand } from './commands/AbstractCommand.js';
 import type { CommandBlueprint } from './CommandBlueprint.js';
 import { Log } from '../log/Log.js';
-import type { ButtonInteraction } from 'discord.js';
+import type { ButtonInteraction, MessageOptions } from 'discord.js';
 import { ClientSingleton } from '../client/ClientSingleton.js';
 import type { ClientCredentialsItem } from '../client/ClientCredentialsItem.js';
 import type { AbstractGlobalCommand } from './commands/AbstractGlobalCommand.js';
 import type { AbstractVoiceCommand } from './commands/AbstractVoiceCommand.js';
 import { State } from '../state/State.js';
 import { EmbedErrorCodes } from '../resources/enums/EmbedErrorCodes.js';
+import { TrafficRequester } from '../traffic/TrafficRequester.js';
+import { ErrorMessageEmbed } from './ErrorMessageEmbed.js';
 
 const GlobalCommands = Object.values(GlobalCommandObj);
 const VoiceCommands = Object.values(VoiceCommandObj);
@@ -59,7 +61,7 @@ export class CommandManagerSingleton {
 		) =>
 			Command.id === info.commandId
 			|| Command.aliases.includes(info.commandId);
-		const reply = async (command: AbstractCommand) => {
+		const replyCommand = async (command: AbstractCommand) => {
 			const messageActionRow = await command.getAction(info);
 
 			if (messageActionRow.components.length > 0) {
@@ -69,9 +71,25 @@ export class CommandManagerSingleton {
 				);
 			}
 
-			await info.reply(await command.getReply(info));
+			if (!(await TrafficRequester.request(info.id))) return;
+
+			const commandReply = await command.getReply(info);
+
+			await reply(commandReply);
 
 			Log.debug(`Reply: ${command.Class.id} @ ${info.guildId ?? '?'}`);
+		};
+
+		const reply = async (reply: MessageOptions) => {
+			if (
+				(reply.embeds?.[0] as ErrorMessageEmbed)[
+					ErrorMessageEmbed.IS_ERROR as keyof ErrorMessageEmbed
+				]
+				&& !(await TrafficRequester.requestError(info.id))
+			)
+				return;
+
+			await info.reply(reply);
 		};
 
 		for (const Command of VoiceCommands as typeof AbstractVoiceCommand[]) {
@@ -82,8 +100,7 @@ export class CommandManagerSingleton {
 				?.members.cache.get(info.userId!)?.voice.channelId;
 
 			if (voiceChannelId == null) {
-				await info.reply({
-					options: {},
+				await reply({
 					embeds: [
 						Command.errorUser(
 							EmbedErrorCodes.CHANNEL_NOT_CONNECTED,
@@ -96,8 +113,8 @@ export class CommandManagerSingleton {
 
 			const targetVC = State.guildIdToVoiceChannel.get(info.guildId!);
 
-			if (targetVC == null) {
-				await info.reply({
+			if (targetVC == null || targetVC.id !== voiceChannelId) {
+				await reply({
 					embeds: [Command.errorUser(EmbedErrorCodes.NOT_PLAYING)],
 				});
 
@@ -106,7 +123,7 @@ export class CommandManagerSingleton {
 
 			targetVC.lastCommandBlueprint = info;
 
-			await reply(new Command(targetVC));
+			await replyCommand(new Command(targetVC));
 
 			return;
 		}
@@ -114,12 +131,12 @@ export class CommandManagerSingleton {
 		for (const Command of GlobalCommands) {
 			if (!isCallingCommand(Command)) continue;
 
-			await reply(new Command());
+			await replyCommand(new Command());
 
 			return;
 		}
 
-		await info.reply({
+		await reply({
 			embeds: [
 				AbstractCommand.errorUser(EmbedErrorCodes.COMMAND_NOT_FOUND),
 			],

@@ -11,6 +11,8 @@ export class ShareCommand extends AbstractGlobalCommand {
 	public override async getEmbed(
 		info: CommandBlueprint,
 	): Promise<MessageEmbed> {
-		return (await super.getEmbed(info)).setDescription(Constants.SHARE_URL);
+		return (await super.getEmbed(info)).setDescription(
+			Constants.SHARE_URLS,
+		);
 	}
 }

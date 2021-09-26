@@ -12,10 +12,11 @@ import { Constants } from '../../resources/enums/Constants.js';
 import type { EmbedErrorCodes } from '../../resources/enums/EmbedErrorCodes.js';
 import { ClientError } from '../../resources/errors/ClientError.js';
 import type { CommandBlueprint } from '../CommandBlueprint.js';
+import { ErrorMessageEmbed } from '../ErrorMessageEmbed.js';
 
 export abstract class AbstractCommand {
 	// #region error constants
-	private static EMBED_ERROR_500 = new MessageEmbed()
+	private static EMBED_ERROR_500 = new ErrorMessageEmbed()
 		.setColor(Constants.EMBED_COLOUR)
 		.setAuthor(
 			this.getAuthorName(),
@@ -27,7 +28,7 @@ export abstract class AbstractCommand {
 			"something went wrong, the server room caught fire; it's (probably) not your fault.",
 		);
 
-	private static EMBED_ERROR_503 = new MessageEmbed()
+	private static EMBED_ERROR_503 = new ErrorMessageEmbed()
 		.setColor(Constants.EMBED_COLOUR)
 		.setAuthor(
 			this.getAuthorName(),
@@ -39,7 +40,7 @@ export abstract class AbstractCommand {
 			'something really wrong has happened! just letting you know if i act a little weird.',
 		);
 
-	private static EMBED_ERROR_400 = new MessageEmbed()
+	private static EMBED_ERROR_400 = new ErrorMessageEmbed()
 		.setColor(Constants.EMBED_COLOUR)
 		.setAuthor(
 			this.getAuthorName(),
@@ -49,7 +50,7 @@ export abstract class AbstractCommand {
 		.setTitle(Constants.EMBED_TITLE_ERROR_USER)
 		.setDescription("that command doesn't look right lol, try again.");
 
-	private static EMBED_ERROR_403 = new MessageEmbed()
+	private static EMBED_ERROR_403 = new ErrorMessageEmbed()
 		.setColor(Constants.EMBED_COLOUR)
 		.setAuthor(
 			this.getAuthorName(),
@@ -61,7 +62,7 @@ export abstract class AbstractCommand {
 			"i don't have permission from the server to join that channel, try again.",
 		);
 
-	private static EMBED_ERROR_404 = new MessageEmbed()
+	private static EMBED_ERROR_404 = new ErrorMessageEmbed()
 		.setColor(Constants.EMBED_COLOUR)
 		.setAuthor(
 			this.getAuthorName(),
@@ -71,7 +72,7 @@ export abstract class AbstractCommand {
 		.setTitle(Constants.EMBED_TITLE_ERROR_USER)
 		.setDescription('no media was found for your query, try again.');
 
-	private static EMBED_ERROR_405 = new MessageEmbed()
+	private static EMBED_ERROR_405 = new ErrorMessageEmbed()
 		.setColor(Constants.EMBED_COLOUR)
 		.setAuthor(
 			this.getAuthorName(),
@@ -81,7 +82,7 @@ export abstract class AbstractCommand {
 		.setTitle(Constants.EMBED_TITLE_ERROR_USER)
 		.setDescription("that command doesn't seem to exist, try `!help`.");
 
-	private static EMBED_ERROR_406 = new MessageEmbed()
+	private static EMBED_ERROR_406 = new ErrorMessageEmbed()
 		.setColor(Constants.EMBED_COLOUR)
 		.setAuthor(
 			this.getAuthorName(),
@@ -91,7 +92,7 @@ export abstract class AbstractCommand {
 		.setTitle(Constants.EMBED_TITLE_ERROR_USER)
 		.setDescription('unsupported channel type, try again.');
 
-	private static EMBED_ERROR_420 = new MessageEmbed()
+	private static EMBED_ERROR_420 = new ErrorMessageEmbed()
 		.setColor(Constants.EMBED_COLOUR)
 		.setAuthor(
 			this.getAuthorName(),
@@ -101,7 +102,7 @@ export abstract class AbstractCommand {
 		.setTitle(Constants.EMBED_TITLE_ERROR_USER)
 		.setDescription("you don't seem to be in a voice channel, try again.");
 
-	private static EMBED_ERROR_423 = new MessageEmbed()
+	private static EMBED_ERROR_423 = new ErrorMessageEmbed()
 		.setColor(Constants.EMBED_COLOUR)
 		.setAuthor(
 			this.getAuthorName(),
@@ -111,7 +112,7 @@ export abstract class AbstractCommand {
 		.setTitle(Constants.EMBED_TITLE_ERROR_USER)
 		.setDescription("don't be rude i'm already playing, try again.");
 
-	private static EMBED_ERROR_426 = new MessageEmbed()
+	private static EMBED_ERROR_426 = new ErrorMessageEmbed()
 		.setColor(Constants.EMBED_COLOUR)
 		.setAuthor(
 			this.getAuthorName(),
@@ -131,9 +132,7 @@ export abstract class AbstractCommand {
 	public Class = this.constructor as typeof AbstractCommand;
 	public instanceId = Number.MAX_SAFE_INTEGER * Math.random();
 
-	public async getReply(
-		info: CommandBlueprint,
-	): Promise<MessagePayload | MessageOptions> {
+	public async getReply(info: CommandBlueprint) {
 		const actions = await this.getActions(info);
 
 		return {
@@ -151,8 +150,8 @@ export abstract class AbstractCommand {
 		return new MessageEmbed()
 			.setColor(Constants.EMBED_COLOUR)
 			.setAuthor(
-				this.Class.getAuthorName(),
-				this.Class.getAuthorImage(),
+				this.getAuthorName(),
+				this.getAuthorImage(),
 				Constants.EMBED_AUTHOR_URL,
 			)
 			.setTitle(this.Class.id);
@@ -197,12 +196,21 @@ export abstract class AbstractCommand {
 		};
 	}
 
+	protected getAuthorImage() {
+		return this.Class.getAuthorImage();
+	}
+
 	protected static getAuthorImage(): string {
 		// TODO(sxxov): add klscam img list
 		return Constants.EMBED_AUTHOR_DEFAULT_IMAGE;
 	}
 
+	protected getAuthorName() {
+		return this.Class.getAuthorName();
+	}
+
 	protected static getAuthorName() {
+		// TODO(sxxov): add channel name
 		return '\u200B';
 	}
 

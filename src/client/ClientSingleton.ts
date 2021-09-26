@@ -2,14 +2,16 @@ import { Client, Guild, Intents, Interaction, Message } from 'discord.js';
 import assert from 'assert';
 import { Log } from '../log/Log.js';
 import JSONdb from 'simple-json-db';
-import { Constants } from '../resources/Constants.js';
+import { Constants } from '../resources/enums/Constants.js';
 import { YoutubeMoosick } from 'youtube-moosick';
 import { State } from '../state/State.js';
 import { CommandManagerSingleton } from '../command/CommandManagerSingleton.js';
 import { CommandBlueprintAdapter } from '../command/adapters/CommandBlueprintAdapter.js';
-import { ClientCredentialsItem } from './ClientCredentialsItem.js';
+import type { ClientCredentialsItem } from './ClientCredentialsItem.js';
 import { GuildState } from '../state/states/GuildState.js';
 import { VoiceChannelStateFactory } from '../state/states/VoiceChannelStateFactory.js';
+import { CrashHandlerSingleton } from './CrashHandlerSingleton.js';
+import AbortController from 'abort-controller';
 
 const client = new Client({
 	intents: [
@@ -44,10 +46,17 @@ function listener(target: ClientSingleton, propertyKey: string) {
 export class ClientSingleton {
 	public static client = client;
 	public static ytm = ytm;
-	public static credentials = ClientCredentialsItem.from({
-		token: process.env.TOKEN!,
-		clientId: process.env.CLIENT_ID!,
-	});
+	public static credentials: ClientCredentialsItem;
+
+	public static async register(credentials: ClientCredentialsItem) {
+		this.credentials = credentials;
+
+		(global as Record<any, any>).AbortController = AbortController;
+
+		CrashHandlerSingleton.register();
+
+		await this.client.login(credentials.token);
+	}
 
 	public static voiceChannelStateFactory = new VoiceChannelStateFactory(
 		this.client,
