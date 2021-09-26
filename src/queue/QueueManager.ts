@@ -148,9 +148,16 @@ export class QueueManager {
 			);
 		}
 
-		return results.playlistContents.map((playlistContent) =>
-			QueueItemAdapter.adaptPlaylistContent(playlistContent, id),
-		);
+		return results.playlistContents
+			.map((playlistContent) =>
+				playlistContent.trackId == null
+					? null
+					: QueueItemAdapter.adaptPlaylistContent(
+							playlistContent,
+							id,
+					  ),
+			)
+			.filter(Boolean) as QueueItem[];
 	}
 
 	private async createQueueFromYoutubeSongId(
