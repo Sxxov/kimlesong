@@ -26,4 +26,8 @@ export class QueueItem extends Item {
 			? this.title
 			: `${this.artist} - ${this.title}`;
 	};
+
+	public readonly clone = (): QueueItem => {
+		return QueueItem.from(this);
+	};
 }
