@@ -6,7 +6,7 @@ import { AbstractGlobalCommand } from '../AbstractGlobalCommand.js';
 export class ShareCommand extends AbstractGlobalCommand {
 	public static override id = 'share';
 	public static override description =
-		'returns the link to add the bot to another server';
+		'returns the link to add the bot to another server.';
 
 	public override async getEmbed(
 		info: CommandBlueprint,
