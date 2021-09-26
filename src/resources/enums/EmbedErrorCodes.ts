@@ -7,4 +7,5 @@ export const enum EmbedErrorCodes {
 	CHANNEL_NOT_CONNECTED = 420,
 	NOT_PLAYING = 426,
 	IS_ALREADY_PLAYING = 423,
+	INDEX_OUT_OF_BOUNDS = 416,
 }
