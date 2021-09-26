@@ -10,8 +10,6 @@ export class SkipCommand extends AbstractVoiceCommand {
 	public static override description = 'skips the current song';
 	public static override aliases = ['s'];
 
-	// TODO(sxxov): put deleted songs into -ve indices instead of deleting them (until someone clears the queue)
-
 	public static override getSlashCommand(): SlashCommandBuilder {
 		return super
 			.getSlashCommand()
@@ -26,7 +24,7 @@ export class SkipCommand extends AbstractVoiceCommand {
 	public override async getEmbed(
 		info: CommandBlueprint,
 	): Promise<MessageEmbed> {
-		const { queue } = this.ctx;
+		const { queue, previousQueue } = this.ctx;
 
 		if (queue == null) return SkipCommand.errorInternal();
 
@@ -36,6 +34,8 @@ export class SkipCommand extends AbstractVoiceCommand {
 
 		const skipped = queue.splice(0, Number(info.argument) || 1);
 
+		previousQueue.append(skipped);
+
 		return (await super.getEmbed(info)).setDescription(
 			`skipped ${
 				skipped.length > 1
@@ -43,7 +43,7 @@ export class SkipCommand extends AbstractVoiceCommand {
 							skipped.length - 1
 					  } more)`
 					: skipped[0].toMarkdown()
-			}`,
+			}.`,
 		);
 	}
 }

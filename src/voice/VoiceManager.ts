@@ -8,7 +8,6 @@ import {
 	VoiceConnection,
 	VoiceConnectionDisconnectReason,
 	VoiceConnectionStatus,
-	getVoiceConnections,
 } from '@discordjs/voice';
 import type { VoiceChannel } from 'discord.js';
 import ytdl from 'discord-ytdl-core';
@@ -35,6 +34,8 @@ export class VoiceManager {
 	}
 
 	public async playQueue() {
+		if (this.player.state.status === AudioPlayerStatus.Playing) return;
+
 		return new Promise<void>((resolve, reject) => {
 			const unsubscribe = this.state.queue.subscribe(async (queue) => {
 				Log.debug(
@@ -55,11 +56,13 @@ export class VoiceManager {
 
 					try {
 						const { currentQueueItem } = this;
-						this.player.stop(true);
+						this.player.stop();
 						await this.play(this.currentQueueItem);
 
 						if (currentQueueItem === this.currentQueueItem) {
-							this.state.queue.shift();
+							const skipped = this.state.queue.shift();
+
+							if (skipped) this.state.previousQueue.push(skipped);
 						}
 					} catch (err: unknown) {
 						await this.stop();

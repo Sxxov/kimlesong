@@ -11,13 +11,19 @@ export class DisconnectCommand extends AbstractVoiceCommand {
 	public override async getEmbed(
 		info: CommandBlueprint,
 	): Promise<MessageEmbed> {
-		const { queue, queuedPlaylists, queuedPlaylistsTimeouts } = this.ctx;
+		const {
+			queue,
+			queuedPlaylists,
+			queuedPlaylistsTimeouts,
+			previousQueue,
+		} = this.ctx;
 
 		if (queue == null || queuedPlaylists == null)
 			return DisconnectCommand.errorInternal();
 
 		queue.splice(0, queue.length);
 		queuedPlaylists.splice(0, queuedPlaylists.length);
+		previousQueue.splice(0, previousQueue.length);
 
 		queuedPlaylistsTimeouts.forEach((timeout) => {
 			clearTimeout(timeout);
