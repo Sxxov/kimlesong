@@ -14,13 +14,14 @@ import { State } from '../state/State.js';
 import { EmbedErrorCodes } from '../resources/enums/EmbedErrorCodes.js';
 import { TrafficRequester } from '../traffic/TrafficRequester.js';
 import { ErrorMessageEmbed } from './ErrorMessageEmbed.js';
+import { PlayCommand } from './commands/global';
 
 const GlobalCommands = Object.values(GlobalCommandObj);
 const VoiceCommands = Object.values(VoiceCommandObj);
 const AllCommands = [...GlobalCommands, ...VoiceCommands];
 
 export class CommandManagerSingleton {
-	private static commandInstanceIdToInstanceCache = new Map<
+	public static commandInstanceIdToInstanceCache = new Map<
 		number,
 		AbstractCommand
 	>();
@@ -71,13 +72,18 @@ export class CommandManagerSingleton {
 				);
 			}
 
-			if (!(await TrafficRequester.request(info.id))) return;
+			if (command.Class === PlayCommand) {
+				if (State.guildIdToVoiceChannel.has(info.guildId!)) {
+					if (await TrafficRequester.request(info.id))
+						await reply(await command.getReply(info));
+				} else if (await TrafficRequester.requestError(info.id))
+					await reply(await command.getReply(info));
 
-			const commandReply = await command.getReply(info);
+				return;
+			}
 
-			await reply(commandReply);
-
-			Log.debug(`Reply: ${command.Class.id} @ ${info.guildId ?? '?'}`);
+			if (await TrafficRequester.request(info.id))
+				await reply(await command.getReply(info));
 		};
 
 		const reply = async (reply: MessageOptions) => {
@@ -90,6 +96,10 @@ export class CommandManagerSingleton {
 				return;
 
 			await info.reply(reply);
+
+			Log.debug(
+				`Reply: ${JSON.stringify(reply)} @ ${info.guildId ?? '?'}`,
+			);
 		};
 
 		for (const Command of VoiceCommands as typeof AbstractVoiceCommand[]) {
