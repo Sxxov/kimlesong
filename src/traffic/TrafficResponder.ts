@@ -1,8 +1,8 @@
 import type { Worker } from 'worker_threads';
 import { IllegalStateError } from '../resources/errors/IllegalStateError.js';
-import { PriorityRequest } from './requests/PriorityRequest.js';
-import { NotOkResponse } from './responses/NotOkResponse.js';
-import { OkResponse } from './responses/OkResponse.js';
+import { PriorityTrafficRequest } from './requests/PriorityTrafficRequest.js';
+import { NotOkTrafficResponse } from './responses/NotOkTrafficResponse.js';
+import { OkTrafficResponse } from './responses/OkTrafficResponse.js';
 import { RequestPriorities } from './TrafficRequestPriorities.js';
 import { TrafficRequestState } from './TrafficRequestState.js';
 
@@ -20,8 +20,10 @@ export class TrafficResponder {
 		});
 	}
 
-	private onMessage(message: PriorityRequest, worker: Worker) {
-		if (message.name !== PriorityRequest.name)
+	private onMessage(message: PriorityTrafficRequest, worker: Worker) {
+		if (message.type !== PriorityTrafficRequest.TYPE) return;
+
+		if (message.name !== PriorityTrafficRequest.name)
 			throw new IllegalStateError(
 				'Worker requested with unknown request type',
 			);
@@ -47,19 +49,19 @@ export class TrafficResponder {
 
 					const [firstWorker, ...restWorkers] = state.workers;
 
-					firstWorker.postMessage(new OkResponse(messageId));
+					firstWorker.postMessage(new OkTrafficResponse(messageId));
 					restWorkers.forEach((worker) => {
-						worker.postMessage(new NotOkResponse(messageId));
+						worker.postMessage(new NotOkTrafficResponse(messageId));
 					});
 				}
 
 				break;
 			case RequestPriorities.HIGH:
 				if (state.isResponded) {
-					worker.postMessage(new NotOkResponse(messageId));
+					worker.postMessage(new NotOkTrafficResponse(messageId));
 				} else {
 					state.isResponded = true;
-					worker.postMessage(new OkResponse(messageId));
+					worker.postMessage(new OkTrafficResponse(messageId));
 				}
 
 				break;
