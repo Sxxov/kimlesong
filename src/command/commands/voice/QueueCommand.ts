@@ -175,21 +175,28 @@ export class QueueCommand extends AbstractVoiceCommand {
 	public override async getAction(
 		info: CommandBlueprint,
 		isPreviousEnabled = false,
-		isNextEnabled = true,
+		isNextEnabled = this.ctx.queue.length
+			> Constants.COMMAND_QUEUE_PAGE_SIZE,
 	) {
 		return (await super.getAction(info)).addComponents(
 			new MessageButton()
 				.setCustomId(
 					this.getCustomId(Constants.EMBED_BUTTON_QUEUE_PREVIOUS),
 				)
-				.setLabel('←')
+				.setLabel('⬅')
 				.setStyle('SECONDARY')
 				.setDisabled(!isPreviousEnabled),
 			new MessageButton()
 				.setCustomId(
+					this.getCustomId(Constants.EMBED_BUTTON_QUEUE_REFRESH),
+				)
+				.setLabel('♻')
+				.setStyle('SECONDARY'),
+			new MessageButton()
+				.setCustomId(
 					this.getCustomId(Constants.EMBED_BUTTON_QUEUE_NEXT),
 				)
-				.setLabel('→')
+				.setLabel('➡')
 				.setStyle('SECONDARY')
 				.setDisabled(!isNextEnabled),
 		);
