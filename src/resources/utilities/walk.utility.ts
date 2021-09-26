@@ -15,9 +15,7 @@ export class EitherShape extends Shape {
 		@typescript-eslint/no-unsafe-member-access
 */
 export class WalkUtility {
-	public static walkAlongChildren<
-		T,
-	>(
+	public static walkAlongChildren<T>(
 		object: T,
 		childKey: keyof T,
 		callback: (object: T[typeof childKey]) => boolean,
@@ -39,7 +37,10 @@ export class WalkUtility {
 		}
 	}
 
-	public static walkAndReturnObject(object: any, callback: (object: any) => any) {
+	public static walkAndReturnObject(
+		object: any,
+		callback: (object: any) => any,
+	) {
 		if (typeof object !== 'object') {
 			return callback(object);
 		}
@@ -57,9 +58,20 @@ export class WalkUtility {
 		return result;
 	}
 
-	public static walkAndReturnVoid(object: any, callback: (objectPart: any) => void) {
+	public static walkAndReturnVoid<
+		T extends Record<string | number | symbol, any>,
+	>(
+		object: T,
+		callback: (
+			leaf: T[keyof T],
+			key?: keyof typeof object,
+			parent?: typeof object[keyof typeof object],
+		) => void,
+		key?: keyof typeof object,
+		parent?: typeof object[keyof typeof object],
+	) {
 		if (typeof object !== 'object') {
-			callback(object);
+			callback(object, key, parent);
 
 			return;
 		}
@@ -70,7 +82,12 @@ export class WalkUtility {
 			const key = keys[i];
 			const value = object[key];
 
-			this.walkAndReturnObject(value, callback);
+			this.walkAndReturnVoid(
+				value,
+				callback,
+				key,
+				object as typeof object[keyof typeof object],
+			);
 		}
 	}
 
@@ -82,22 +99,21 @@ export class WalkUtility {
 
 			const fromValue = from[key];
 
-			if (fromValue === null
-				|| typeof fromValue !== 'object') {
+			if (fromValue === null || typeof fromValue !== 'object') {
 				to[key] = fromValue;
 
 				continue;
 			}
 
-			if (to[key] === null
-				|| typeof to[key] !== 'object') {
+			if (to[key] === null || typeof to[key] !== 'object') {
 				// @ts-expect-error obj[string]
-				to[key] = (fromValue as any[]).constructor === Array
-					? []
-					: (fromValue as Record<any, any>).constructor === Object
+				to[key] =
+					(fromValue as any[]).constructor === Array
+						? []
+						: (fromValue as Record<any, any>).constructor === Object
 						? {}
-						// not a POJO/POJA, just copy ref
-						: fromValue;
+						: // not a POJO/POJA, just copy ref
+						  fromValue;
 			}
 
 			this.mirror(fromValue, to[key]);
@@ -111,7 +127,11 @@ export class WalkUtility {
 	>(
 		obj1: T1,
 		obj2: T2,
-		comparator: (v1: T1[keyof T1], v2: T2[keyof T2], key: keyof T1) => boolean,
+		comparator: (
+			v1: T1[keyof T1],
+			v2: T2[keyof T2],
+			key: keyof T1,
+		) => boolean,
 	): boolean {
 		for (const key in obj1) {
 			if (!Object.prototype.hasOwnProperty.call(obj1, key)) {
@@ -139,30 +159,28 @@ export class WalkUtility {
 	public static walkAndAssertShape<
 		T1 extends Record<string, any>,
 		T2 extends T1,
-	>(
-		obj1: T1,
-		obj2: T2,
-		path = '.',
-	): true | never {
+	>(obj1: T1, obj2: T2, path = '.'): true | never {
 		if (obj2 instanceof EitherShape) {
-			const shape = obj2.shapes.find(
-				(shape) => shape !== null
-				&& typeof shape === 'object'
-				&& shape.constructor
+			const shape = obj2.shapes.find((shape) =>
+				shape !== null && typeof shape === 'object' && shape.constructor
 					? obj1 instanceof shape.constructor
 					: typeof obj1 === typeof shape,
 			);
 
 			if (shape == null && !obj2.shapes.includes(shape)) {
-				throw new AssertionError(`Value in "${path}" is not one of shape "${
-					obj2.shapes.map(
-						(shape) => shape !== null
-						&& typeof shape === 'object'
-						&& shape.constructor?.name
-							? shape.constructor.name
-							: typeof shape,
-					).join(' | ')
-				}"`, obj1, obj2);
+				throw new AssertionError(
+					`Value in "${path}" is not one of shape "${obj2.shapes
+						.map((shape) =>
+							shape !== null
+							&& typeof shape === 'object'
+							&& shape.constructor?.name
+								? shape.constructor.name
+								: typeof shape,
+						)
+						.join(' | ')}"`,
+					obj1,
+					obj2,
+				);
 			}
 
 			this.walkAndAssertShape(obj1, shape, path);
@@ -171,9 +189,13 @@ export class WalkUtility {
 		}
 
 		// skip into objects inside array, as lengths may be different
-		if (obj1 as any instanceof Array) {
-			if (!(obj2 as any instanceof Array)) {
-				throw new AssertionError(`Value in "${path}" is of different shape`, obj1, obj2);
+		if ((obj1 as any) instanceof Array) {
+			if (!((obj2 as any) instanceof Array)) {
+				throw new AssertionError(
+					`Value in "${path}" is of different shape`,
+					obj1,
+					obj2,
+				);
 			}
 
 			(obj1 as unknown as any[]).forEach((obj1Part, i) => {
@@ -184,12 +206,18 @@ export class WalkUtility {
 		}
 
 		// is leaf node
-		if (obj1 === null
+		if (
+			obj1 === null
 			|| typeof obj1 !== 'object'
 			|| obj2 === null
-			|| typeof obj2 !== 'object') {
+			|| typeof obj2 !== 'object'
+		) {
 			if (typeof obj1 !== typeof obj2) {
-				throw new AssertionError(`Value in "${path}" is of different shape`, obj1, obj2);
+				throw new AssertionError(
+					`Value in "${path}" is of different shape`,
+					obj1,
+					obj2,
+				);
 			}
 
 			return true;
@@ -209,10 +237,7 @@ export class WalkUtility {
 	public static walkAndCompareShape<
 		T1 extends Record<string, any>,
 		T2 extends T1,
-	>(
-		obj1: T1,
-		obj2: T2,
-	): boolean {
+	>(obj1: T1, obj2: T2): boolean {
 		try {
 			return this.walkAndAssertShape(obj1, obj2);
 		} catch (_: unknown) {
