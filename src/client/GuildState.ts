@@ -1,7 +1,7 @@
 import type { Guild } from 'discord.js';
-import type { ClientCredentialsItem } from '../../client/ClientCredentialsItem.js';
-import { CommandManagerSingleton } from '../../command/CommandManagerSingleton.js';
-import { Constants } from '../../resources/enums/Constants.js';
+import type { ClientCredentialsItem } from './ClientCredentialsItem.js';
+import { CommandManagerSingleton } from '../command/CommandManagerSingleton.js';
+import { Constants } from '../resources/enums/Constants.js';
 
 export class GuildState {
 	public id: string;
