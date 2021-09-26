@@ -4,7 +4,7 @@ import { AbstractGlobalCommand } from '../AbstractGlobalCommand.js';
 
 export class PingCommand extends AbstractGlobalCommand {
 	public static override id = 'ping';
-	public static override description = '(:';
+	public static override description = 'pong.';
 
 	public override async getEmbed(
 		info: CommandBlueprint,
