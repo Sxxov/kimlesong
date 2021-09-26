@@ -1,10 +1,10 @@
 import { parentPort } from 'worker_threads';
 import { IllegalStateError } from '../resources/errors/IllegalStateError.js';
 import { RequestPriorities } from './TrafficRequestPriorities.js';
-import { PriorityRequest } from './requests/PriorityRequest.js';
-import type { AbstractResponse } from './responses/AbstractResponse.js';
-import { NotOkResponse } from './responses/NotOkResponse.js';
-import { OkResponse } from './responses/OkResponse.js';
+import { PriorityTrafficRequest } from './requests/PriorityTrafficRequest.js';
+import type { AbstractTrafficResponse } from './responses/AbstractTrafficResponse.js';
+import { NotOkTrafficResponse } from './responses/NotOkTrafficResponse.js';
+import { OkTrafficResponse } from './responses/OkTrafficResponse.js';
 
 export class TrafficRequester {
 	public static async requestError(messageId: string) {
@@ -15,19 +15,21 @@ export class TrafficRequester {
 		messageId: string,
 		priority = RequestPriorities.HIGH,
 	) {
-		parentPort?.postMessage(new PriorityRequest(messageId, priority));
+		parentPort?.postMessage(
+			new PriorityTrafficRequest(messageId, priority),
+		);
 
 		return new Promise<boolean>((resolve) => {
 			parentPort?.on(
 				'message',
-				function onMessage(message: AbstractResponse) {
+				function onMessage(message: AbstractTrafficResponse) {
 					if (message.messageId !== messageId) return;
 
 					switch (message.name) {
-						case OkResponse.name:
+						case OkTrafficResponse.name:
 							resolve(true);
 							break;
-						case NotOkResponse.name:
+						case NotOkTrafficResponse.name:
 							resolve(false);
 							break;
 						default:
