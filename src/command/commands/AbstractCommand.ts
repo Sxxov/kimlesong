@@ -10,6 +10,7 @@ import {
 import { Log } from '../../log/Log.js';
 import { Constants } from '../../resources/enums/Constants.js';
 import type { EmbedErrorCodes } from '../../resources/enums/EmbedErrorCodes.js';
+import { KimLeScam } from '../../resources/enums/KimLeScam.js';
 import { ClientError } from '../../resources/errors/ClientError.js';
 import type { CommandBlueprint } from '../CommandBlueprint.js';
 import { ErrorMessageEmbed } from '../ErrorMessageEmbed.js';
@@ -91,6 +92,18 @@ export abstract class AbstractCommand {
 		)
 		.setTitle(Constants.EMBED_TITLE_ERROR_USER)
 		.setDescription('unsupported channel type, try again.');
+
+	private static EMBED_ERROR_416 = new ErrorMessageEmbed()
+		.setColor(Constants.EMBED_COLOUR)
+		.setAuthor(
+			this.getAuthorName(),
+			this.getAuthorImage(),
+			Constants.EMBED_AUTHOR_URL,
+		)
+		.setTitle(Constants.EMBED_TITLE_ERROR_USER)
+		.setDescription(
+			"you went a little too far, there's nothing at that index, try again.",
+		);
 
 	private static EMBED_ERROR_420 = new ErrorMessageEmbed()
 		.setColor(Constants.EMBED_COLOUR)
@@ -202,7 +215,7 @@ export abstract class AbstractCommand {
 
 	protected static getAuthorImage(): string {
 		// TODO(sxxov): add klscam img list
-		return Constants.EMBED_AUTHOR_DEFAULT_IMAGE;
+		return KimLeScam[Math.floor(Math.random() * 119)];
 	}
 
 	protected getAuthorName() {
@@ -210,7 +223,6 @@ export abstract class AbstractCommand {
 	}
 
 	protected static getAuthorName() {
-		// TODO(sxxov): add channel name
 		return '\u200B';
 	}
 
