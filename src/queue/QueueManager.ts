@@ -163,6 +163,7 @@ export class QueueManager {
 							},
 						} as unknown as ContinuablePlaylistURL['playlistContents'],
 					};
+					let offset = 0;
 					const newLength = this.ctx.queuedPlaylists.push(results);
 					const timeout = async () => {
 						const indexOfQueuedPlaylists =
@@ -178,7 +179,7 @@ export class QueueManager {
 								'',
 							),
 							{
-								offset: items.length,
+								offset,
 								limit: 100,
 							},
 						)!;
@@ -192,10 +193,17 @@ export class QueueManager {
 							) ?? []),
 						);
 
-						this.ctx.queuedPlaylistsTimeouts.setAt(
-							indexOfQueuedPlaylists,
-							setTimeout(timeout, Constants.COMMAND_MORE_TIMEOUT),
-						);
+						offset += 100;
+
+						if (offset < total) {
+							this.ctx.queuedPlaylistsTimeouts.setAt(
+								indexOfQueuedPlaylists,
+								setTimeout(
+									timeout,
+									Constants.COMMAND_MORE_TIMEOUT,
+								),
+							);
+						}
 					};
 
 					this.ctx.queuedPlaylistsTimeouts.setAt(
