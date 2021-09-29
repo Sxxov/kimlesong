@@ -6,9 +6,11 @@ export class AsyncQueueItem extends AbstractQueueItem {
 	public declare url: Promise<string>;
 	public declare externalUrl?: string;
 
-	public readonly toMarkdown = async () => {
+	public readonly toMarkdown = async (isRealUrlPrioritized = false) => {
 		return `[${this.getSimpleTitle()}](${
-			this.externalUrl ?? (await this.url)
+			isRealUrlPrioritized
+				? await this.url
+				: this.externalUrl ?? (await this.url)
 		}) — \`${TimeUtility.hhmmss(this.duration)}\``;
 	};
 
