@@ -17,15 +17,20 @@ import type { VoiceChannelState } from './VoiceChannelState.js';
 import { DiscordJSVoiceAdapterFactory } from './DiscordJSVoiceAdapterFactory.js';
 import { JoinFailureError } from './errors/JoinFailureError.js';
 import { PlayFailureError } from './errors/PlayFailureError.js';
-import { Log } from '../log/Log.js';
 import type { AsyncQueueItem } from '../queue/AsyncQueueItem.js';
+import { SponsorBlockFfmpegFilterFactory } from './SponsorBlockFfmpegFilterFactory.js';
+import { Store } from '../resources/blocks/classes/store/Store.js';
+import { PlayQueueEventEmitter } from './event/emitters/PlayQueueEventEmitter.js';
+import { PlayQueueEventNames } from './event/names/PlayQueueEventNames.js';
+import { PlayEventEmitter } from './event/emitters/PlayEventEmitter.js';
+import { PlayEventNames } from './event/names/PlayEventNames.js';
 
 export class VoiceManager {
 	private connection: VoiceConnection | null = null;
 	private player = createAudioPlayer();
 	private audio: AudioResource | null = null;
-	private currentQueueItem: AsyncQueueItem | SyncQueueItem | null = null;
-	public isQueuePaused = false;
+	private interrupted = new Store<undefined>(undefined);
+	public isPlaying = false;
 
 	constructor(
 		private channel: VoiceChannel,
@@ -33,57 +38,82 @@ export class VoiceManager {
 	) {}
 
 	public async stop() {
+		this.isPlaying = false;
 		this.connection?.destroy();
 		this.connection = null;
 		this.audio = null;
 	}
 
-	public async playQueue() {
-		if (this.player.state.status === AudioPlayerStatus.Playing) return;
+	public playQueue(queue: (SyncQueueItem | AsyncQueueItem)[]) {
+		if (this.isPlaying) this.interrupt();
 
-		return new Promise<void>((resolve, reject) => {
-			const unsubscribe = this.state.queue.subscribe(async (queue) => {
-				Log.debug(
-					`On queue trigger:\n${
-						new Error().stack?.split('\n').slice(1).join('\n') ?? ''
-					}`,
-				);
-				if (queue[0] !== this.currentQueueItem) {
-					if (queue[0] == null) {
-						try {
-							// if it's not defined yet
-							unsubscribe();
-						} catch {
-							setTimeout(unsubscribe);
-						}
+		const emitter = new PlayQueueEventEmitter();
+		const execute = async () => {
+			// workaround for unsafe accesses
+			// javascript more like java amirite
+			const isStarted = [false];
+			for (const queueItem of queue) {
+				const play = this.play(queueItem);
 
-						await this.stop();
-						resolve();
-
-						return;
+				play.once(PlayEventNames.START, (queueItem) => {
+					if (!isStarted[0]) {
+						isStarted[0] = true;
+						emitter.emit(PlayQueueEventNames.QUEUE_START, queue);
 					}
 
-					this.currentQueueItem = queue[0];
+					emitter.emit(
+						PlayQueueEventNames.QUEUE_ITEM_START,
+						queueItem,
+					);
+				});
 
-					try {
-						const { currentQueueItem } = this;
-						this.player.stop(true);
-						await this.play(this.currentQueueItem);
+				play.once(PlayEventNames.ERROR, (err) => {
+					play.removeAllListeners();
+					throw err;
+				});
 
-						if (currentQueueItem === this.currentQueueItem) {
-							const skipped = this.state.queue.shift();
+				const isPlayingNextQueueItem = await new Promise<boolean>(
+					(resolve) => {
+						play.once(PlayEventNames.INTERRUPT, (queueItem) => {
+							emitter.emit(
+								PlayQueueEventNames.INTERRUPT,
+								queueItem,
+							);
 
-							if (skipped) this.state.previousQueue.push(skipped);
-						}
-					} catch (err: unknown) {
-						await this.stop();
-						reject(err);
-					}
+							resolve(false);
+						});
+						play.once(PlayEventNames.END, (queueItem) => {
+							emitter.emit(
+								PlayQueueEventNames.QUEUE_ITEM_END,
+								queueItem,
+							);
+
+							resolve(true);
+						});
+					},
+				).finally(() => {
+					play.removeAllListeners();
+				});
+
+				if (!isPlayingNextQueueItem) {
+					return;
 				}
-			});
-		}).catch((err) => {
-			throw err;
+			}
+
+			await this.stop();
+
+			emitter.emit(PlayQueueEventNames.QUEUE_END, queue);
+		};
+
+		void execute().catch((err) => {
+			emitter.emit(PlayQueueEventNames.ERROR, err);
 		});
+
+		return emitter;
+	}
+
+	public interrupt() {
+		this.interrupted.trigger();
 	}
 
 	public setVolume(volume: number) {
@@ -95,53 +125,116 @@ export class VoiceManager {
 	}
 
 	public pauseQueue() {
-		this.isQueuePaused = true;
-		return this.player.pause();
+		this.isPlaying = !this.player.pause();
+
+		return !this.isPlaying;
 	}
 
 	public resumeQueue() {
-		this.isQueuePaused = false;
-		return this.player.unpause();
+		this.isPlaying = this.player.unpause();
+
+		return this.isPlaying;
 	}
 
-	public async play(queueItem: AsyncQueueItem | SyncQueueItem) {
-		await this.connect();
+	public play(queueItem: AsyncQueueItem | SyncQueueItem) {
+		const emitter = new PlayEventEmitter();
+		const execute = async () => {
+			let isInterrupted = false;
+			const unsubscribe = this.interrupted.subscribeLazy(() => {
+				isInterrupted = true;
 
-		if (this.connection == null) {
-			throw new JoinFailureError();
-		}
+				emitter.emit(PlayEventNames.INTERRUPT, queueItem);
 
-		const url = await queueItem.url;
-		const readable = ytdl(url, {
-			highWaterMark: 32 * 1024 * 1024,
-			filter: 'audioonly',
-			opusEncoded: true,
-			encoderArgs: [],
+				unsubscribe();
+
+				try {
+					readable.removeAllListeners('close');
+				} catch {}
+			});
+
+			const connection = await this.connect();
+
+			if (connection == null) {
+				throw new JoinFailureError();
+			}
+
+			if (isInterrupted) return;
+
+			emitter.emit(PlayEventNames.CONNECT, connection);
+
+			const url = await queueItem.url;
+
+			if (isInterrupted) return;
+
+			// probably from a spotify queue item which isn't on yt at all
+			if (!url) throw new PlayFailureError();
+
+			const sponsorBlockFilter =
+				await new SponsorBlockFfmpegFilterFactory(
+					this.state.sponsorBlock,
+				).create(await queueItem.id);
+
+			if (isInterrupted) return;
+
+			const readable = ytdl(url, {
+				highWaterMark: 32 * 1024 * 1024,
+				filter: 'audioonly',
+				opusEncoded: true,
+				encoderArgs: sponsorBlockFilter,
+			});
+
+			this.audio = createAudioResource(readable, {
+				inputType: StreamType.Opus,
+				inlineVolume: true,
+			});
+			this.audio.volume?.setVolume(0.5);
+
+			this.player.play(this.audio);
+			this.isPlaying = true;
+
+			try {
+				await entersState(this.player, AudioPlayerStatus.Playing, 5000);
+			} catch (_: unknown) {
+				throw new PlayFailureError();
+			}
+
+			if (isInterrupted) return;
+
+			connection.subscribe(this.player);
+
+			emitter.emit(PlayEventNames.START, queueItem);
+
+			readable.once('close', () => {
+				emitter.emit(PlayEventNames.END, queueItem);
+
+				unsubscribe();
+			});
+		};
+
+		void execute().catch((err) => {
+			emitter.emit(PlayEventNames.ERROR, err);
 		});
-		this.audio = createAudioResource(readable, {
-			inputType: StreamType.Opus,
-			inlineVolume: true,
-		});
-		this.audio.volume?.setVolume(0.5);
 
-		this.player.play(this.audio);
-
-		try {
-			await entersState(this.player, AudioPlayerStatus.Playing, 5000);
-		} catch (_: unknown) {
-			throw new PlayFailureError();
-		}
-
-		this.connection.subscribe(this.player);
-
-		await new Promise<void>((resolve) => {
-			readable.once('close', resolve);
-		});
+		return emitter;
 	}
 
 	private async connect() {
 		if (this.connection) return this.connection;
 
+		const connection = await this.createConnection();
+
+		this.connection = connection;
+
+		if (connection == null) {
+			await this.stop();
+
+			return null;
+		}
+
+		return connection;
+	}
+
+	private async createConnection() {
 		const connection = joinVoiceChannel({
 			channelId: this.state.id,
 			guildId: this.state.guildId,
@@ -152,6 +245,7 @@ export class VoiceManager {
 		});
 
 		let readyLock = false;
+
 		connection.on('stateChange', async (_, newState) => {
 			switch (newState.status) {
 				case VoiceConnectionStatus.Disconnected:
@@ -221,8 +315,12 @@ export class VoiceManager {
 			}
 		});
 
-		this.connection = connection;
+		try {
+			await entersState(connection, VoiceConnectionStatus.Ready, 20_000);
 
-		return connection;
+			return connection;
+		} catch {
+			return null;
+		}
 	}
 }
