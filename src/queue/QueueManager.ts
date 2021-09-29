@@ -1,15 +1,17 @@
 import type { ContinuablePlaylistURL, Song, Video } from 'youtube-moosick';
 import ytdl from 'ytdl-core';
+import { URL } from 'url';
 import { Constants } from '../resources/enums/Constants.js';
 import type { VoiceChannelState } from '../voice/VoiceChannelState.js';
 import { PlaylistContentAdapter } from './adapters/PlaylistContentAdapter.js';
 import { QueueItemAdapter } from './adapters/QueueItemAdapter.js';
 import type { AsyncQueueItem } from './AsyncQueueItem.js';
 import { InvalidPlaylistError } from './errors/InvalidPlaylistError.js';
-import { InvalidSongError } from './errors/InvalidSongError.js';
 import { InvalidURLError } from './errors/InvalidURLError.js';
 import { UnsupportedURLError } from './errors/UnsupportedURLError.js';
 import type { SyncQueueItem } from './SyncQueueItem.js';
+import { QueueArray } from './QueueArray.js';
+import { fuzzy } from 'fast-fuzzy';
 
 export class QueueManager {
 	constructor(private ctx: VoiceChannelState) {}
@@ -24,8 +26,8 @@ export class QueueManager {
 
 	private async createQueueFromSearch(
 		searchString: string,
-	): Promise<SyncQueueItem[] | AsyncQueueItem[]> {
-		if (!searchString) return [];
+	): Promise<QueueArray> {
+		if (!searchString) return new QueueArray();
 		if (
 			searchString.startsWith('http://')
 			|| searchString.startsWith('https://')
@@ -53,32 +55,42 @@ export class QueueManager {
 		return this.createQueueFromYoutubeSearch(searchString);
 	}
 
-	private async createQueueFromYoutubeSearch(searchString: string) {
+	private async createQueueFromYoutubeSearch(
+		searchString: string,
+	): Promise<QueueArray<SyncQueueItem>> {
 		const searchResult = await this.ctx.ytm.search(searchString);
+		const searchTerms = searchString.split(' - ');
+		const [artistString, nameString] =
+			searchTerms.length >= 2
+				? [searchTerms[0], searchTerms.slice(1).join(' - ')]
+				: ['', searchString];
 		const song = searchResult.find(
 			(item) =>
 				(item as Song).duration != null
-				&& searchString.includes(item.name),
+				&& fuzzy(nameString, (item as Song).name) > 0.6
+				&& !(item as Song).artist.find(
+					(a) => fuzzy(a.name, artistString) <= 0.6,
+				),
 		) as Song | undefined;
 
-		if (song == null) {
-			const video = searchResult.find(
-				(item) => (item as Video).length != null,
-			) as Video | undefined;
-
-			if (video == null) {
-				throw new InvalidSongError();
-			}
-
-			return [QueueItemAdapter.adaptVideo(video)];
+		if (song != null) {
+			return QueueArray.extend([QueueItemAdapter.adaptSong(song)]);
 		}
 
-		return [QueueItemAdapter.adaptSong(song)];
+		const video = searchResult.find(
+			(item) => (item as Video).length != null,
+		) as Video | undefined;
+
+		if (video != null) {
+			return QueueArray.extend([QueueItemAdapter.adaptVideo(video)]);
+		}
+
+		return QueueArray.extend([]);
 	}
 
 	private async createQueueFromSpotifyURL(
 		url: URL,
-	): Promise<AsyncQueueItem[]> {
+	): Promise<QueueArray<AsyncQueueItem>> {
 		switch (true) {
 			case url.pathname.startsWith(Constants.SPOTIFY_PATHNAME_ALBUM): {
 				const result = await this.ctx.spotify.getAlbumTracks(
@@ -87,20 +99,23 @@ export class QueueManager {
 						'',
 					),
 				);
-				const { items } = result.body;
+				const { items, total } = result.body;
 
-				return items.map((item) =>
-					QueueItemAdapter.adaptSpotifyTrack(
-						item,
-						async () =>
-							(
-								await this.createQueueFromYoutubeSearch(
-									`${item.artists
-										.map((artist) => artist.name)
-										.join(', ')} - ${item.name}`,
-								)
-							)[0]?.id,
+				return QueueArray.extend(
+					items.map((item) =>
+						QueueItemAdapter.adaptSpotifyTrack(
+							item,
+							async () =>
+								(
+									await this.createQueueFromYoutubeSearch(
+										`${item.artists
+											.map((artist) => artist.name)
+											.join(', ')} - ${item.name}`,
+									)
+								)[0]?.id,
+						),
 					),
+					total,
 				);
 			}
 
@@ -212,11 +227,14 @@ export class QueueManager {
 					);
 				}
 
-				return items.map((item) =>
-					QueueItemAdapter.adaptSpotifyTrack(
-						item.track,
-						idGetterFactory(item.track),
+				return QueueArray.extend(
+					items.map((item) =>
+						QueueItemAdapter.adaptSpotifyTrack(
+							item.track,
+							idGetterFactory(item.track),
+						),
 					),
+					total,
 				);
 			}
 
@@ -229,7 +247,7 @@ export class QueueManager {
 					),
 				);
 
-				return [
+				return QueueArray.extend([
 					QueueItemAdapter.adaptSpotifyTrack(
 						track.body,
 						async () =>
@@ -241,7 +259,7 @@ export class QueueManager {
 								)
 							)[0]?.id,
 					),
-				];
+				]);
 			}
 
 			default:
@@ -251,7 +269,7 @@ export class QueueManager {
 
 	private async createQueueFromYoutubeURL(
 		url: URL,
-	): Promise<SyncQueueItem[]> {
+	): Promise<QueueArray<SyncQueueItem>> {
 		switch (true) {
 			case url.pathname.startsWith(Constants.YOUTUBE_PATHNAME_PLAYLIST): {
 				const id = url.searchParams.get('list');
@@ -280,7 +298,7 @@ export class QueueManager {
 
 	private async createQueueFromYoutubePlaylistId(
 		id: string,
-	): Promise<SyncQueueItem[]> {
+	): Promise<QueueArray<SyncQueueItem>> {
 		if (!(id.startsWith('PL') || id.startsWith('VL'))) {
 			throw new InvalidPlaylistError();
 		}
@@ -323,26 +341,31 @@ export class QueueManager {
 			);
 		}
 
-		return results.playlistContents
-			.map((playlistContent) =>
-				playlistContent.trackId == null
-					? null
-					: QueueItemAdapter.adaptPlaylistContent(
-							playlistContent,
-							id,
-					  ),
-			)
-			.filter(Boolean) as SyncQueueItem[];
+		return QueueArray.extend(
+			results.playlistContents
+				.map((playlistContent) =>
+					playlistContent.trackId == null
+						? null
+						: QueueItemAdapter.adaptPlaylistContent(
+								playlistContent,
+								id,
+						  ),
+				)
+				.filter(Boolean) as SyncQueueItem[],
+			results.playlistContents.length,
+		);
 	}
 
 	private async createQueueFromYoutubeSongId(
 		id: string,
 		playlistId?: string,
-	): Promise<SyncQueueItem[]> {
+	): Promise<QueueArray<SyncQueueItem>> {
 		const { videoDetails } = await ytdl.getBasicInfo(
 			`https://${Constants.YOUTUBE_HOSTNAME}${Constants.YOUTUBE_PATHNAME_SONG}?v=${id}`,
 		);
 
-		return [QueueItemAdapter.adaptVideoDetails(videoDetails, playlistId)];
+		return QueueArray.extend([
+			QueueItemAdapter.adaptVideoDetails(videoDetails, playlistId),
+		]);
 	}
 }
