@@ -23,7 +23,7 @@ export class NowCommand extends AbstractVoiceCommand {
 		}
 
 		return (await super.getEmbed(info)).setDescription(
-			`playing ${await queue.getAt(0).toMarkdown()}`,
+			`playing ${await queue.getAt(0).toMarkdown(true)}`,
 		);
 	}
 
@@ -47,19 +47,19 @@ export class NowCommand extends AbstractVoiceCommand {
 						- (actionId === Constants.EMBED_BUTTON_NOW_PREVIOUS
 							? 1
 							: 0)
-						> 1,
+						>= 1,
 					this.ctx.queue.length
 						+ (actionId === Constants.EMBED_BUTTON_NOW_NEXT ? 1 : 0)
 						> 1,
-					!this.ctx.voiceManager.isQueuePaused,
+					this.ctx.voiceManager.isPlaying,
 				),
 			],
 		});
 
 		if (actionId === Constants.EMBED_BUTTON_NOW_PLAY) {
-			if (this.ctx.voiceManager.isQueuePaused)
-				this.ctx.voiceManager.resumeQueue();
-			else this.ctx.voiceManager.pauseQueue();
+			if (this.ctx.voiceManager.isPlaying)
+				this.ctx.voiceManager.pauseQueue();
+			else this.ctx.voiceManager.resumeQueue();
 		}
 
 		if (actionId === Constants.EMBED_BUTTON_NOW_NEXT) {
@@ -77,9 +77,9 @@ export class NowCommand extends AbstractVoiceCommand {
 
 	public override async getAction(
 		info: CommandBlueprint,
-		isPreviousEnabled = this.ctx.previousQueue.length > 1,
+		isPreviousEnabled = this.ctx.previousQueue.length >= 1,
 		isNextEnabled = this.ctx.queue.length > 1,
-		isPaused = this.ctx.voiceManager.isQueuePaused,
+		isPaused = false,
 	) {
 		return (await super.getAction(info)).addComponents(
 			new MessageButton()
