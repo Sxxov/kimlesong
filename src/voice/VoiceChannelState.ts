@@ -5,6 +5,7 @@ import type { CommandBlueprint } from '../command/CommandBlueprint.js';
 import type { AsyncQueueItem } from '../queue/AsyncQueueItem.js';
 import type { SyncQueueItem } from '../queue/SyncQueueItem.js';
 import { ArrayStore } from '../resources/blocks/classes/store/stores/ArrayStore.js';
+import { CachedSponsorBlock } from './CachedSponsorBlock.js';
 import { VoiceManager } from './VoiceManager.js';
 
 export class VoiceChannelState {
@@ -13,16 +14,15 @@ export class VoiceChannelState {
 	public client: Client;
 	public ytm: YoutubeMoosick;
 	public spotify: SpotifyWebApi;
+	public sponsorBlock = new CachedSponsorBlock('kimlebot');
+	public voiceManager: VoiceManager;
+	public lastCommandBlueprint: CommandBlueprint | null = null;
 	public previousQueue = new ArrayStore<SyncQueueItem | AsyncQueueItem>();
 	public queue = new ArrayStore<SyncQueueItem | AsyncQueueItem>();
 	public queuedPlaylists = new ArrayStore<ContinuablePlaylistURL>();
 	public queuedPlaylistsTimeouts = new ArrayStore<
 		ReturnType<typeof setTimeout>
 	>();
-
-	public voiceManager: VoiceManager;
-
-	public lastCommandBlueprint: CommandBlueprint | null = null;
 
 	constructor({
 		client,
