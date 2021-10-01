@@ -115,7 +115,7 @@ export class ClientSingleton {
 			await CommandManagerSingleton.run(
 				CommandBlueprintAdapter.adaptMessage(
 					message,
-					commandId,
+					commandId.toLowerCase(),
 					argument,
 				),
 			);
