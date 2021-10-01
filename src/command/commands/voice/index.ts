@@ -7,3 +7,7 @@ export * from './ReplayCommand.js';
 export * from './PauseCommand.js';
 export * from './ResumeCommand.js';
 export * from './VolumeCommand.js';
+export * from './PlaySkipCommand.js';
+export * from './LoopCommand.js';
+export * from './SkipToCommand.js';
+export * from './NowCommand.js';
