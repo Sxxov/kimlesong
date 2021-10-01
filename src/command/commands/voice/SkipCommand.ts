@@ -7,7 +7,9 @@ import { AbstractVoiceCommand } from '../AbstractVoiceCommand.js';
 
 export class SkipCommand extends AbstractVoiceCommand {
 	public static override id = 'skip';
-	public static override description = 'skips the current song.';
+	public static override description =
+		'skips the specified amount of queue indices.';
+
 	public static override aliases = ['s'];
 
 	public static override getSlashCommand(): SlashCommandBuilder {
@@ -16,7 +18,7 @@ export class SkipCommand extends AbstractVoiceCommand {
 			.addStringOption((option) =>
 				option
 					.setName(Constants.SLASH_ARGUMENT_NAME)
-					.setDescription('How many items to skip')
+					.setDescription('number of queue indices to skip.')
 					.setRequired(false),
 			) as SlashCommandBuilder;
 	}
