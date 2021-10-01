@@ -17,7 +17,6 @@ import { CommandManagerSingleton } from '../../CommandManagerSingleton.js';
 import { AbstractGlobalCommand } from '../AbstractGlobalCommand.js';
 import { NowCommand } from '../voice/NowCommand.js';
 import type { AsyncQueueItem } from '../../../queue/AsyncQueueItem.js';
-import { Log } from '../../../log/Log.js';
 import type { VoiceChannelState } from '../../../voice/VoiceChannelState.js';
 import { IllegalStateError } from '../../../resources/errors/IllegalStateError.js';
 import { PlayEventNames } from '../../../voice/event/names/PlayEventNames.js';
@@ -91,6 +90,7 @@ export class PlayCommand extends AbstractGlobalCommand {
 					voiceChannelState.guildId,
 					voiceChannelState,
 				);
+				this.registerPlayOnQueue(guild, info, voiceChannelState);
 			}
 
 			if (voiceChannelId !== voiceChannelState.id) {
@@ -99,13 +99,9 @@ export class PlayCommand extends AbstractGlobalCommand {
 				];
 			}
 
-			if (voiceChannelState.queue.length <= 0) {
-				this.registerPlayOnQueue(guild, info, voiceChannelState);
-			}
-
 			const queuedItems = await new QueueManager(
 				voiceChannelState,
-			).appendQueueFromSearch(info.argument);
+			).pushQueueFromSearch(info.argument);
 
 			if (queuedItems.length <= 0) {
 				return [this.Class.errorUser(EmbedErrorCodes.SONG_NOT_FOUND)];
@@ -157,12 +153,16 @@ export class PlayCommand extends AbstractGlobalCommand {
 		info: CommandBlueprint,
 		state: VoiceChannelState,
 	) {
+		let lock = false;
+		let isRetriggering = false;
 		const unsubscribe = state.queue.subscribeLazy(async (queue) => {
-			Log.debug(
-				`On queue trigger:\n${queue
-					.map((q) => `\t${q.toString()}`)
-					.join('\n')}`,
-			);
+			if (lock) {
+				isRetriggering = true;
+
+				return;
+			}
+
+			lock = true;
 
 			const currentQueueItemUrl =
 				(queue[0] as AsyncQueueItem)?.externalUrl
@@ -171,7 +171,12 @@ export class PlayCommand extends AbstractGlobalCommand {
 				(this.lastQueueItem as AsyncQueueItem)?.externalUrl
 				?? (await this.lastQueueItem?.url);
 
-			if (lastQueueItemUrl === currentQueueItemUrl) return;
+			if (lastQueueItemUrl === currentQueueItemUrl) {
+				lock = false;
+				isRetriggering = false;
+
+				return;
+			}
 
 			if (queue.length <= 0) {
 				State.guildIdToVoiceChannel.delete(state.guildId);
@@ -182,6 +187,11 @@ export class PlayCommand extends AbstractGlobalCommand {
 						.get(state.client.user?.id ?? '')
 						?.setNickname(Constants.DEFAULT_NICKNAME);
 				} catch {}
+
+				await state.voiceManager.stop();
+
+				lock = false;
+				isRetriggering = false;
 
 				return;
 			}
@@ -197,56 +207,33 @@ export class PlayCommand extends AbstractGlobalCommand {
 					);
 			} catch {}
 
-			await this.printNow(queue, info, state);
-			await this.playShiftQueue(info, state);
-
 			this.lastQueueItem = queue[0];
+
+			await this.playShiftQueue(info, state);
+			await this.refreshNowCommand(queue, info, state);
+
+			lock = false;
+
+			if (isRetriggering) {
+				isRetriggering = false;
+				state.queue.trigger();
+			}
 		});
 	}
 
-	private async printNow(
-		queue: (AsyncQueueItem | SyncQueueItem)[],
+	private async sendNowCommand(
 		info: CommandBlueprint,
 		state: VoiceChannelState,
 	) {
-		let lastNowMessage: Message | undefined;
-		let skipNow = false;
 		const guild = state.client.guilds.cache.get(info.guildId!);
-
-		if (guild == null)
-			throw new IllegalStateError(
-				'attempted to print now in nullish guild',
-			);
-
-		while ((lastNowMessage = this.lastNowMessages.shift())) {
-			const url =
-				(queue[0] as AsyncQueueItem)?.externalUrl
-				?? (await queue[0]?.url);
-			if (lastNowMessage?.embeds[0].description?.includes(url)) {
-				skipNow = true;
-				continue;
-			}
-
-			try {
-				await lastNowMessage?.delete();
-
-				const lastNow = this.lastNows.shift();
-
-				CommandManagerSingleton.commandInstanceIdToInstanceCache.delete(
-					Number(lastNow?.instanceId),
-				);
-			} catch {}
-		}
-
-		if (queue.length <= 0) state.voiceManager.interrupt();
-
-		if (skipNow) return;
+		const channel = guild?.channels.cache.get(
+			info.channelId ?? '',
+		) as TextBasedChannels;
 
 		const now = new NowCommand(state);
 		const nowReply = await now.getReply(info);
-		const nowMessage = await (
-			guild.channels.cache.get(info.channelId ?? '') as TextBasedChannels
-		).send(nowReply);
+		const nowMessage = await channel.send(nowReply);
+
 		CommandManagerSingleton.commandInstanceIdToInstanceCache.set(
 			now.instanceId,
 			now,
@@ -254,6 +241,88 @@ export class PlayCommand extends AbstractGlobalCommand {
 
 		this.lastNows.push(now);
 		this.lastNowMessages.push(nowMessage);
+	}
+
+	private async refreshNowCommand(
+		queue: (AsyncQueueItem | SyncQueueItem)[],
+		info: CommandBlueprint,
+		state: VoiceChannelState,
+	) {
+		const guild = state.client.guilds.cache.get(info.guildId!);
+		const channel = guild?.channels.cache.get(
+			info.channelId ?? '',
+		) as TextBasedChannels;
+
+		if (guild == null || channel == null)
+			throw new IllegalStateError(
+				'attempted to print now in nullish channel',
+			);
+
+		if (queue.length <= 0) {
+			state.voiceManager.interrupt();
+
+			this.lastNowMessages.forEach(async (lastNowMessage, i) => {
+				try {
+					await lastNowMessage?.delete();
+
+					this.lastNowMessages.splice(i, 1);
+				} catch {}
+
+				const lastNow = this.lastNows.shift();
+
+				CommandManagerSingleton.commandInstanceIdToInstanceCache.delete(
+					Number(lastNow?.instanceId),
+				);
+			});
+
+			return;
+		}
+
+		while (this.lastNowMessages.length !== 1) {
+			if (this.lastNowMessages.length < 1) {
+				await this.sendNowCommand(info, state);
+
+				return;
+			}
+
+			if (this.lastNowMessages.length > 1) {
+				const lastNowMessage = this.lastNowMessages.shift();
+				const lastNow = this.lastNows.shift();
+				const url =
+					(queue[0] as AsyncQueueItem)?.externalUrl
+					?? (await queue[0]?.url);
+
+				if (lastNowMessage?.embeds[0].description?.includes(url)) {
+					// add to the end so it'll continue & use this msg
+					this.lastNowMessages.push(lastNowMessage);
+					this.lastNows.push(lastNow!);
+
+					continue;
+				}
+
+				try {
+					await lastNowMessage?.delete();
+
+					CommandManagerSingleton.commandInstanceIdToInstanceCache.delete(
+						Number(lastNow?.instanceId),
+					);
+				} catch {}
+			}
+		}
+
+		if (channel.lastMessageId === this.lastNowMessages[0].id) {
+			await this.lastNowMessages[0].edit(
+				await this.lastNows[0]!.getReply(info),
+			);
+		} else {
+			await this.lastNowMessages[0]?.delete();
+
+			CommandManagerSingleton.commandInstanceIdToInstanceCache.delete(
+				Number(this.lastNows[0]?.instanceId),
+			);
+
+			await this.sendNowCommand(info, state);
+		}
 	}
 
 	private async playShiftQueue(
@@ -283,6 +352,9 @@ export class PlayCommand extends AbstractGlobalCommand {
 				// eslint-disable-next-line @typescript-eslint/no-loop-func
 				play.once(PlayEventNames.START, () => {
 					resolvePlayShiftQueue();
+
+					if (state.queue[1])
+						void state.voiceManager.preload(state.queue[1]);
 				});
 
 				const isRetrying = await new Promise<boolean>((resolve) => {
@@ -332,6 +404,10 @@ export class PlayCommand extends AbstractGlobalCommand {
 			});
 
 			await state.voiceManager.stop();
+
+			const played = state.queue.shift();
+
+			if (played) state.previousQueue.push(played);
 		};
 
 		void execute();
