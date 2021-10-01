@@ -90,7 +90,10 @@ export class QueueCommand extends AbstractVoiceCommand {
 
 			reply.addField(
 				queueItem.title,
-				`[\`00.\` ](${url} "${queueItem.getSimpleTitle()}") by ${
+				`[\`${String(this.ctx.previousQueue.length + 1).padStart(
+					2,
+					'0',
+				)}.\` ](${url} "${queueItem.getSimpleTitle()}") by ${
 					queueItem.artist
 				} — \`${TimeUtility.hhmmss(queueItem.duration)}\``,
 			);
@@ -106,10 +109,9 @@ export class QueueCommand extends AbstractVoiceCommand {
 					)
 					.map((queueItem, i) => ({
 						name: queueItem.title,
-						value: `[\`${String(i + 1 + offset).padStart(
-							2,
-							'0',
-						)}.\`](${
+						value: `[\`${String(
+							i + 2 + offset + this.ctx.previousQueue.length,
+						).padStart(2, '0')}.\`](${
 							(queueItem as AsyncQueueItem).externalUrl
 								? (queueItem as AsyncQueueItem).externalUrl
 								  ?? '#'
