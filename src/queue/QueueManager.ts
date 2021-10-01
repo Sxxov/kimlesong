@@ -16,10 +16,28 @@ import { fuzzy } from 'fast-fuzzy';
 export class QueueManager {
 	constructor(private ctx: VoiceChannelState) {}
 
-	public async appendQueueFromSearch(searchString: string) {
+	public async unshiftQueueFromSearch(
+		searchString: string,
+		isQueueToBeTriggered = true,
+	) {
 		const result = await this.createQueueFromSearch(searchString);
 
-		this.ctx.queue.append(result);
+		(isQueueToBeTriggered ? this.ctx.queue : this.ctx.queue.value).unshift(
+			...result,
+		);
+
+		return result;
+	}
+
+	public async pushQueueFromSearch(
+		searchString: string,
+		isQueueToBeTriggered = true,
+	) {
+		const result = await this.createQueueFromSearch(searchString);
+
+		(isQueueToBeTriggered ? this.ctx.queue : this.ctx.queue.value).push(
+			...result,
+		);
 
 		return result;
 	}
