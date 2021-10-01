@@ -12,9 +12,10 @@ export class CrashHandlerSingleton {
 
 	private static onError(err: Error, origin: NodeJS.UncaughtExceptionOrigin) {
 		State.guildIdToVoiceChannel.forEach((vc) => {
+			const embed = AbstractCommand.errorInternal(500, err);
 			try {
 				void vc.lastCommandBlueprint?.reply({
-					embeds: [AbstractCommand.errorInternal(503)],
+					embeds: [embed],
 				});
 			} catch {
 				void (
@@ -24,7 +25,7 @@ export class CrashHandlerSingleton {
 							vc.lastCommandBlueprint?.channelId ?? '',
 						) as TextBasedChannels
 				).send({
-					embeds: [AbstractCommand.errorInternal(503)],
+					embeds: [embed],
 				});
 			}
 		});
