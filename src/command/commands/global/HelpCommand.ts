@@ -4,6 +4,7 @@ import * as VoiceCommandObj from '../voice';
 import type { CommandBlueprint } from '../../CommandBlueprint.js';
 import { AbstractGlobalCommand } from '../AbstractGlobalCommand.js';
 import type { AbstractVoiceCommand } from '../AbstractVoiceCommand.js';
+import type { SlashCommandStringOption } from '@discordjs/builders';
 
 export class HelpCommand extends AbstractGlobalCommand {
 	public static override id = 'help';
@@ -35,6 +36,7 @@ export class HelpCommand extends AbstractGlobalCommand {
 		Command: typeof AbstractGlobalCommand | typeof AbstractVoiceCommand,
 	) {
 		const slash = Command.getSlashCommand();
+		const [argument] = slash.options;
 
 		return {
 			name: `\`!${slash.name}\`${
@@ -43,8 +45,15 @@ export class HelpCommand extends AbstractGlobalCommand {
 							.map((alias) => `\`!${alias}\``)
 							.join('/')})`
 					: ''
+			}${argument ? ' `[…]`' : ''}`,
+			value: `${slash.description}${
+				argument
+					? `\n \`[…]\`: ${
+							(slash.options[0] as SlashCommandStringOption)
+								.description
+					  }`
+					: ''
 			}`,
-			value: slash.description,
 			inline: true,
 		};
 	}
