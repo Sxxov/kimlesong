@@ -89,7 +89,13 @@ export class CommandManagerSingleton {
 				return;
 			}
 
-			if (await TrafficRequester.request(info.id))
+			if (
+				await TrafficRequester.request(
+					// spoof message id to ensure it's unique
+					// this enables support for multiple commands per message
+					`${info.id}::${Date.now() * Math.random()}`,
+				)
+			)
 				await reply(await command.getReply(info));
 		};
 
