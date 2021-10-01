@@ -1,0 +1,13 @@
+diff --git a/node_modules/discord-ytdl-core/index.d.ts b/node_modules/discord-ytdl-core/index.d.ts
+index 8103eb2..59754e3 100644
+--- a/node_modules/discord-ytdl-core/index.d.ts
++++ b/node_modules/discord-ytdl-core/index.d.ts
+@@ -3,7 +3,7 @@ declare module "discord-ytdl-core" {
+     import { opus as Opus, FFmpeg } from "prism-media";
+     import { Readable, Duplex } from "stream";
+ 
+-    interface YTDLStreamOptions extends downloadOptions {
++    export interface YTDLStreamOptions extends downloadOptions {
+         seek?: number;
+         encoderArgs?: string[];
+         fmt?: string;
