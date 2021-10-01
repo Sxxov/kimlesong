@@ -1,4 +1,5 @@
 import { ButtonInteraction, MessageButton, MessageEmbed } from 'discord.js';
+import type { AsyncQueueItem } from '../../../queue/AsyncQueueItem.js';
 import { Constants } from '../../../resources/enums/Constants.js';
 import { CommandBlueprintAdapter } from '../../adapters/CommandBlueprintAdapter.js';
 import type { CommandBlueprint } from '../../CommandBlueprint.js';
@@ -22,8 +23,19 @@ export class NowCommand extends AbstractVoiceCommand {
 			);
 		}
 
+		const queueItem = queue.getAt(0);
+
 		return (await super.getEmbed(info)).setDescription(
-			`playing ${await queue.getAt(0).toMarkdown(true)}`,
+			`playing [\`${String(this.ctx.previousQueue.length + 1).padStart(
+				2,
+				'0',
+			)}.\`](${
+				// show external url here if there is
+				(queueItem as AsyncQueueItem).externalUrl
+				?? (await queueItem.url)
+			} "${queueItem.getSimpleTitle()}") ${await queueItem.toMarkdown(
+				true,
+			)}`,
 		);
 	}
 
