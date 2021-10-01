@@ -29,18 +29,6 @@ export abstract class AbstractCommand {
 			"something went wrong, the server room caught fire; it's (probably) not your fault.",
 		);
 
-	private static EMBED_ERROR_503 = new ErrorMessageEmbed()
-		.setColor(Constants.EMBED_COLOUR)
-		.setAuthor(
-			this.getAuthorName(),
-			this.getAuthorImage(),
-			Constants.EMBED_AUTHOR_URL,
-		)
-		.setTitle(Constants.EMBED_TITLE_ERROR_INTERNAL)
-		.setDescription(
-			'something really wrong has happened! just letting you know if i act a little weird.',
-		);
-
 	private static EMBED_ERROR_400 = new ErrorMessageEmbed()
 		.setColor(Constants.EMBED_COLOUR)
 		.setAuthor(
@@ -227,13 +215,18 @@ export abstract class AbstractCommand {
 	}
 
 	public static errorUser(code: EmbedErrorCodes) {
+		Log.debug(
+			new ClientError(String(code)).stack
+				?? 'error generating error... uhh??!!',
+		);
+
 		return this[`EMBED_ERROR_${code}`];
 	}
 
-	public static errorInternal(code: 500 | 503 = 500) {
+	public static errorInternal(code: 500 = 500, error?: Error) {
 		Log.error(
-			new ClientError(`Encountered a ${code} while trying to reply`)
-				.stack,
+			(error ?? new ClientError(String(code))).stack
+				?? 'error generating error... uhh??!!',
 		);
 
 		return this[`EMBED_ERROR_${code}`];
