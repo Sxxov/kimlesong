@@ -216,7 +216,7 @@ export abstract class AbstractCommand {
 
 	public static errorUser(code: EmbedErrorCodes) {
 		Log.debug(
-			new ClientError(String(code)).stack
+			new ClientError(String(code), true).stack
 				?? 'error generating error... uhh??!!',
 		);
 
@@ -225,7 +225,7 @@ export abstract class AbstractCommand {
 
 	public static errorInternal(code: 500 = 500, error?: Error) {
 		Log.error(
-			(error ?? new ClientError(String(code))).stack
+			(error ?? new ClientError(String(code), true)).stack
 				?? 'error generating error... uhh??!!',
 		);
 

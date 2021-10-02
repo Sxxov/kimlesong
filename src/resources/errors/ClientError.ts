@@ -1,7 +1,10 @@
 import { Log } from '../../log/Log.js';
 
 export class ClientError extends Error {
-	constructor(message = 'No message provided, an error with errors?') {
+	constructor(
+		message = 'No message provided, an error with errors?',
+		isSilent = false,
+	) {
 		super(message);
 		this.name = this.constructor.name;
 
@@ -9,7 +12,7 @@ export class ClientError extends Error {
 		// eslint-disable-next-line
 		(Error as any).captureStackTrace?.(this, this.constructor);
 
-		Log.error(this.stack);
+		if (!isSilent) Log.error(this.stack);
 	}
 
 	public static from<T extends ClientError>(
