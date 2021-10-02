@@ -1,5 +1,5 @@
 export class TimeUtility {
-	public static hhmmss(ms: number) {
+	public static hhmmss(ms: number, isSecondsFloored = true) {
 		const msOnly = ms % 1000;
 		ms = (ms - msOnly) / 1000;
 		const secs = ms % 60;
@@ -10,7 +10,11 @@ export class TimeUtility {
 		return `${String(hrs).padStart(2, '0')}:${String(mins).padStart(
 			2,
 			'0',
-		)}:${String(secs).padStart(2, '0')}`;
+		)}:${String(secs).padStart(2, '0')}${
+			isSecondsFloored
+				? ''
+				: `.${String(msOnly).padStart(2, '0').replace('.', '')}`
+		}`;
 	}
 
 	public static ms(hhmmss: string) {
