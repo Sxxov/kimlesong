@@ -12,24 +12,29 @@ import {
 } from '@discordjs/voice';
 import type { VoiceChannel } from 'discord.js';
 import ytdl from 'discord-ytdl-core';
+import type { Readable } from 'stream';
 import type { SyncQueueItem } from '../queue/SyncQueueItem.js';
 import type { VoiceChannelState } from './VoiceChannelState.js';
 import { DiscordJSVoiceAdapterFactory } from './DiscordJSVoiceAdapterFactory.js';
 import { JoinFailureError } from './errors/JoinFailureError.js';
 import { PlayFailureError } from './errors/PlayFailureError.js';
 import type { AsyncQueueItem } from '../queue/AsyncQueueItem.js';
-import { SponsorBlockFfmpegFilterFactory } from './SponsorBlockFfmpegFilterFactory.js';
 import { Store } from '../resources/blocks/classes/store/Store.js';
 import { PlayQueueEventEmitter } from './event/emitters/PlayQueueEventEmitter.js';
 import { PlayQueueEventNames } from './event/names/PlayQueueEventNames.js';
 import { PlayEventEmitter } from './event/emitters/PlayEventEmitter.js';
 import { PlayEventNames } from './event/names/PlayEventNames.js';
+import { SponsorBlockReadable } from './SponsorBlockReadable.js';
+import { Log } from '../log/Log.js';
+import { IllegalArgumentError } from '../resources/errors/IllegalArgumentError.js';
 
 export class VoiceManager {
 	private connection: VoiceConnection | null = null;
 	private player = createAudioPlayer();
 	private audio: AudioResource | null = null;
 	private interrupted = new Store<undefined>(undefined);
+	private urlToReadableCache: Map<string, Readable> = new Map();
+
 	public isPlaying = false;
 
 	constructor(
@@ -113,7 +118,65 @@ export class VoiceManager {
 	}
 
 	public interrupt() {
+		this.player.unpause();
+		this.player.stop(true);
 		this.interrupted.trigger();
+	}
+
+	public async preload(queueItem: AsyncQueueItem | SyncQueueItem) {
+		const url = await queueItem.url;
+
+		if (url == null) return;
+		if (this.urlToReadableCache.has(url)) return;
+
+		const readable = await this.createReadable(queueItem);
+
+		// check again to fight async race conditions
+		if (this.urlToReadableCache.has(url)) readable.destroy();
+		else this.urlToReadableCache.set(url, readable);
+	}
+
+	private async getReadable(queueItem: AsyncQueueItem | SyncQueueItem) {
+		const url = await queueItem.url;
+
+		if (url == null)
+			throw new IllegalArgumentError(
+				'attempted to get readable on nullish url',
+			);
+
+		let readable = this.urlToReadableCache.get(url);
+
+		if (readable == null) {
+			readable = await this.createReadable(queueItem);
+
+			this.urlToReadableCache.set(url, readable);
+		}
+
+		return readable;
+	}
+
+	private async createReadable(
+		queueItem: AsyncQueueItem | SyncQueueItem,
+		options: Parameters<typeof ytdl>[1] = {},
+	) {
+		// return SponsorBlockReadable.new(
+		// 	queueItem,
+		// 	this.state.sponsorBlock,
+		// 	options,
+		// );
+
+		const url = await queueItem.url;
+
+		if (url == null)
+			throw new IllegalArgumentError(
+				'attempted to create readable with nullish url',
+			);
+
+		return ytdl(url, {
+			highWaterMark: 32 * 1024 * 1024,
+			filter: 'audioonly',
+			opusEncoded: true,
+		});
 	}
 
 	public setVolume(volume: number) {
@@ -155,7 +218,11 @@ export class VoiceManager {
 			const connection = await this.connect();
 
 			if (connection == null) {
-				throw new JoinFailureError();
+				throw new JoinFailureError(
+					this.state.client.guilds.cache
+						.get(this.state.guildId)
+						?.channels.cache.get(this.state.id)?.name,
+				);
 			}
 
 			if (isInterrupted) return;
@@ -167,21 +234,11 @@ export class VoiceManager {
 			if (isInterrupted) return;
 
 			// probably from a spotify queue item which isn't on yt at all
-			if (!url) throw new PlayFailureError();
-
-			const sponsorBlockFilter =
-				await new SponsorBlockFfmpegFilterFactory(
-					this.state.sponsorBlock,
-				).create(await queueItem.id);
+			if (!url) throw new PlayFailureError(queueItem);
 
 			if (isInterrupted) return;
 
-			const readable = ytdl(url, {
-				highWaterMark: 32 * 1024 * 1024,
-				filter: 'audioonly',
-				opusEncoded: true,
-				encoderArgs: sponsorBlockFilter,
-			});
+			const readable = await this.getReadable(queueItem);
 
 			this.audio = createAudioResource(readable, {
 				inputType: StreamType.Opus,
@@ -195,7 +252,7 @@ export class VoiceManager {
 			try {
 				await entersState(this.player, AudioPlayerStatus.Playing, 5000);
 			} catch (_: unknown) {
-				throw new PlayFailureError();
+				throw new PlayFailureError(queueItem);
 			}
 
 			if (isInterrupted) return;
@@ -204,8 +261,15 @@ export class VoiceManager {
 
 			emitter.emit(PlayEventNames.START, queueItem);
 
+			readable.once('error', (err) => {
+				if (err.message !== 'Premature close') Log.error(err.stack);
+			});
+
 			readable.once('close', () => {
+				this.isPlaying = false;
+
 				emitter.emit(PlayEventNames.END, queueItem);
+				readable.removeAllListeners();
 
 				unsubscribe();
 			});
