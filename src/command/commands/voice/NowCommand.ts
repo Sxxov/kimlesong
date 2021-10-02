@@ -33,6 +33,7 @@ export class NowCommand extends AbstractVoiceCommand {
 				// show external url here if there is
 				(queueItem as AsyncQueueItem).externalUrl
 				?? (await queueItem.url)
+				?? '#'
 			} "${queueItem.getSimpleTitle()}") ${await queueItem.toMarkdown(
 				true,
 			)}`,
