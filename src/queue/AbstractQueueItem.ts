@@ -5,9 +5,9 @@ export abstract class AbstractQueueItem extends Item {
 	public declare title: string;
 	public declare artist: string;
 	public declare duration: number;
-	public abstract id: string | Promise<string>;
+	public abstract id: string | Promise<string | null>;
 	public declare playlistId?: string;
-	public abstract url: string | Promise<string>;
+	public abstract url: string | Promise<string | null>;
 
 	public override readonly toString = () => {
 		return `${this.getSimpleTitle()} — ${TimeUtility.hhmmss(

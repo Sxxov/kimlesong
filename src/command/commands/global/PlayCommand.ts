@@ -20,6 +20,7 @@ import type { AsyncQueueItem } from '../../../queue/AsyncQueueItem.js';
 import type { VoiceChannelState } from '../../../voice/VoiceChannelState.js';
 import { IllegalStateError } from '../../../resources/errors/IllegalStateError.js';
 import { PlayEventNames } from '../../../voice/event/names/PlayEventNames.js';
+import { SongNotFoundError } from '../../../queue/errors/SongNotFoundError.js';
 
 export class PlayCommand extends AbstractGlobalCommand {
 	public static override id = 'play';
@@ -292,7 +293,10 @@ export class PlayCommand extends AbstractGlobalCommand {
 					(queue[0] as AsyncQueueItem)?.externalUrl
 					?? (await queue[0]?.url);
 
-				if (lastNowMessage?.embeds[0].description?.includes(url)) {
+				if (
+					url
+					&& lastNowMessage?.embeds[0].description?.includes(url)
+				) {
 					// add to the end so it'll continue & use this msg
 					this.lastNowMessages.push(lastNowMessage);
 					this.lastNows.push(lastNow!);
@@ -344,6 +348,13 @@ export class PlayCommand extends AbstractGlobalCommand {
 				playFailureCount < l;
 				++playFailureCount
 			) {
+				// if video not found on yt (AsyncQueueItem)
+				// don't even try, cuz else it'll interrupt which is slow
+				if ((await state.queue.value[0].id) == null) {
+					lastError[0] = new SongNotFoundError();
+					break;
+				}
+
 				if (state.voiceManager.isPlaying)
 					state.voiceManager.interrupt();
 				const play = state.voiceManager.play(state.queue.value[0]);
@@ -394,20 +405,26 @@ export class PlayCommand extends AbstractGlobalCommand {
 
 			await info.reply({
 				embeds: [
-					(await super.getEmbed(info))
+					(
+						await super.getEmbed(info)
+					)
 						.setTitle(Constants.EMBED_TITLE_ERROR_INTERNAL)
 						.setDescription(
 							lastError[0]?.message
 								?? 'lol if u see this not even i know what went wrong',
+						)
+						.addField(
+							'culprit',
+							await state.queue.value[0].toMarkdown(false),
 						),
 				],
 			});
 
-			await state.voiceManager.stop();
-
 			const played = state.queue.shift();
 
 			if (played) state.previousQueue.push(played);
+
+			resolvePlayShiftQueue();
 		};
 
 		void execute();

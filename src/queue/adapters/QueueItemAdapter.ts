@@ -97,7 +97,7 @@ export class QueueItemAdapter {
 				return (async () => {
 					if (typeof idCache === 'string') return idCache;
 
-					idCache = await idGetter();
+					idCache = (await idGetter()) ?? null;
 
 					return idCache;
 				})();
@@ -106,10 +106,12 @@ export class QueueItemAdapter {
 
 		Object.defineProperty(item, 'url', {
 			async get() {
+				const id = await item.id;
+
 				return (async () =>
-					`https://${Constants.YOUTUBE_HOSTNAME}${
-						Constants.YOUTUBE_PATHNAME_SONG
-					}?v=${await item.id}`)();
+					id == null
+						? null
+						: `https://${Constants.YOUTUBE_HOSTNAME}${Constants.YOUTUBE_PATHNAME_SONG}?v=${id}`)();
 			},
 		});
 
