@@ -348,7 +348,10 @@ export class PlayCommand extends AbstractGlobalCommand {
 					break;
 				}
 
-				if (state.voiceManager.isPlaying)
+				if (
+					state.voiceManager.isPlaying
+					|| state.voiceManager.resumeQueue()
+				)
 					state.voiceManager.interrupt();
 				const play = state.voiceManager.play(state.queue.value[0]);
 
