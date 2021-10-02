@@ -165,14 +165,7 @@ export class PlayCommand extends AbstractGlobalCommand {
 
 			lock = true;
 
-			const currentQueueItemUrl =
-				(queue[0] as AsyncQueueItem)?.externalUrl
-				?? (await queue[0]?.url);
-			const lastQueueItemUrl =
-				(this.lastQueueItem as AsyncQueueItem)?.externalUrl
-				?? (await this.lastQueueItem?.url);
-
-			if (lastQueueItemUrl === currentQueueItemUrl) {
+			if (this.lastQueueItem === queue[0]) {
 				lock = false;
 				isRetriggering = false;
 
