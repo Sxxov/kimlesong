@@ -152,6 +152,9 @@ export class VoiceManager {
 			this.urlToReadableCache.set(url, readable);
 		}
 
+		// delete since readables can only be consumed once
+		this.urlToReadableCache.delete(url);
+
 		return readable;
 	}
 
