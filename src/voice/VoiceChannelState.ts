@@ -17,6 +17,8 @@ export class VoiceChannelState {
 	public sponsorBlock = new CachedSponsorBlock('kimlebot');
 	public voiceManager: VoiceManager;
 	public lastCommandBlueprint: CommandBlueprint | null = null;
+	public queueLoopedItemsStartIndex: number | null = null;
+	public unsubscribeQueueLoop: (() => void) | null = null;
 	public previousQueue = new ArrayStore<SyncQueueItem | AsyncQueueItem>();
 	public queue = new ArrayStore<SyncQueueItem | AsyncQueueItem>();
 	public queuedPlaylists = new ArrayStore<ContinuablePlaylistURL>();
