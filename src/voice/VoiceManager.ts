@@ -118,8 +118,6 @@ export class VoiceManager {
 	}
 
 	public interrupt() {
-		this.player.unpause();
-		this.player.stop(true);
 		this.interrupted.trigger();
 	}
 
@@ -268,7 +266,7 @@ export class VoiceManager {
 				if (err.message !== 'Premature close') Log.error(err.stack);
 			});
 
-			readable.once('close', () => {
+			this.player.once(AudioPlayerStatus.Idle, () => {
 				this.isPlaying = false;
 
 				emitter.emit(PlayEventNames.END, queueItem);
