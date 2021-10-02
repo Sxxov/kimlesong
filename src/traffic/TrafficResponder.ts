@@ -3,7 +3,7 @@ import { IllegalStateError } from '../resources/errors/IllegalStateError.js';
 import { PriorityTrafficRequest } from './requests/PriorityTrafficRequest.js';
 import { NotOkTrafficResponse } from './responses/NotOkTrafficResponse.js';
 import { OkTrafficResponse } from './responses/OkTrafficResponse.js';
-import { RequestPriorities } from './TrafficRequestPriorities.js';
+import { TrafficRequestPriorities } from './TrafficRequestPriorities.js';
 import { TrafficRequestState } from './TrafficRequestState.js';
 
 export class TrafficResponder {
@@ -40,7 +40,7 @@ export class TrafficResponder {
 		state.workers.push(worker);
 
 		switch (message.priority) {
-			case RequestPriorities.LOW:
+			case TrafficRequestPriorities.LOW:
 				if (
 					state.requests.length >= this.workerCount
 					&& !state.isResponded
@@ -56,7 +56,7 @@ export class TrafficResponder {
 				}
 
 				break;
-			case RequestPriorities.HIGH:
+			case TrafficRequestPriorities.HIGH:
 				if (state.isResponded) {
 					worker.postMessage(new NotOkTrafficResponse(messageId));
 				} else {

@@ -1,4 +1,4 @@
-export const enum RequestPriorities {
+export const enum TrafficRequestPriorities {
 	LOW,
 	HIGH,
 }

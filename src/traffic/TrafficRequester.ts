@@ -1,6 +1,6 @@
 import { parentPort } from 'worker_threads';
 import { IllegalStateError } from '../resources/errors/IllegalStateError.js';
-import { RequestPriorities } from './TrafficRequestPriorities.js';
+import { TrafficRequestPriorities } from './TrafficRequestPriorities.js';
 import { PriorityTrafficRequest } from './requests/PriorityTrafficRequest.js';
 import type { AbstractTrafficResponse } from './responses/AbstractTrafficResponse.js';
 import { NotOkTrafficResponse } from './responses/NotOkTrafficResponse.js';
@@ -8,12 +8,12 @@ import { OkTrafficResponse } from './responses/OkTrafficResponse.js';
 
 export class TrafficRequester {
 	public static async requestError(messageId: string) {
-		return this.request(messageId, RequestPriorities.LOW);
+		return this.request(messageId, TrafficRequestPriorities.LOW);
 	}
 
 	public static async request(
 		messageId: string,
-		priority = RequestPriorities.HIGH,
+		priority = TrafficRequestPriorities.HIGH,
 	) {
 		parentPort?.postMessage(
 			new PriorityTrafficRequest(messageId, priority),
