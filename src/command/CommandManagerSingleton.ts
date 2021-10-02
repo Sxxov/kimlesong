@@ -81,9 +81,17 @@ export class CommandManagerSingleton {
 							?.members.cache.get(info.userId ?? '')?.voice
 							.channelId
 				) {
-					if (await TrafficRequester.request(info.id))
+					if (
+						await TrafficRequester.request(
+							`${info.id}::${info.commandId}`,
+						)
+					)
 						await reply(await command.getReply(info));
-				} else if (await TrafficRequester.requestError(info.id))
+				} else if (
+					await TrafficRequester.requestError(
+						`${info.id}::${info.commandId}`,
+					)
+				)
 					await reply(await command.getReply(info));
 
 				return;
@@ -93,7 +101,7 @@ export class CommandManagerSingleton {
 				await TrafficRequester.request(
 					// spoof message id to ensure it's unique
 					// this enables support for multiple commands per message
-					`${info.id}::${Date.now() * Math.random()}`,
+					`${info.id}::${info.commandId}`,
 				)
 			)
 				await reply(await command.getReply(info));
