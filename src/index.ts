@@ -26,6 +26,8 @@ export class KimLeSong {
 			spotifyCredentials: SpotifyCredentials[0],
 		});
 
+		worker.setMaxListeners(100);
+
 		worker.on('message', (request) => {
 			if (
 				(request as AbstractMoosickRequest)?.type
