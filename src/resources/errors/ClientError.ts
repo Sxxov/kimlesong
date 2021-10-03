@@ -12,7 +12,7 @@ export class ClientError extends Error {
 		// eslint-disable-next-line
 		(Error as any).captureStackTrace?.(this, this.constructor);
 
-		if (!isSilent) Log.error(this.stack);
+		if (!isSilent) Log.debug(`new ${this.stack ?? this.message}`);
 	}
 
 	public static from<T extends ClientError>(
