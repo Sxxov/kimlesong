@@ -47,6 +47,7 @@ export class VoiceManager {
 		this.connection?.destroy();
 		this.connection = null;
 		this.audio = null;
+		this.state.queue.splice(0, this.state.queue.length);
 	}
 
 	public playQueue(queue: (SyncQueueItem | AsyncQueueItem)[]) {
