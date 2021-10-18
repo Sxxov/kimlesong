@@ -93,7 +93,7 @@ export class QueueCommand extends AbstractVoiceCommand {
 				`[\`${String(this.ctx.previousQueue.length + 1).padStart(
 					2,
 					'0',
-				)}.\` ](${url} "${queueItem.getSimpleTitle()}") by ${
+				)}.\` ](${String(url)} "${queueItem.getSimpleTitle()}") by ${
 					queueItem.artist
 				} — \`${TimeUtility.hhmmss(queueItem.duration)}\``,
 			);
@@ -157,7 +157,7 @@ export class QueueCommand extends AbstractVoiceCommand {
 		}
 
 		const info: CommandBlueprint =
-			CommandBlueprintAdapter.adaptButtonInteraction(
+			await CommandBlueprintAdapter.adaptButtonInteraction(
 				interaction,
 				QueueCommand.id,
 			);
