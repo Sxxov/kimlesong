@@ -1,4 +1,3 @@
-import type { Worker } from 'worker_threads';
 import { DiscordCredentials, SpotifyCredentials } from './Credentials.js';
 import { WorkerFactory } from './worker/WorkerFactory.js';
 import type { ClientCredentialsItem } from './client/ClientCredentialsItem.js';
@@ -10,14 +9,11 @@ import type { MoosickMethodRequest } from './moosick/requests/MoosickMethodReque
 import type { MoosickContinuationRequest } from './moosick/requests/MoosickContinuationRequest.js';
 
 export class KimLeSong {
-	private clientWorkers: Worker[] = [];
 	private moosickWorker = new WorkerFactory('MoosickWorker.js').create();
-	private trafficResponder: TrafficResponder;
+	private trafficResponder = new TrafficResponder();
 
 	constructor() {
 		DiscordCredentials.forEach(this.registerClientWorker.bind(this));
-
-		this.trafficResponder = new TrafficResponder(this.clientWorkers);
 	}
 
 	private registerClientWorker(discordCredentials: ClientCredentialsItem) {
@@ -25,6 +21,8 @@ export class KimLeSong {
 			discordCredentials,
 			spotifyCredentials: SpotifyCredentials[0],
 		});
+
+		this.trafficResponder.register(worker);
 
 		worker.setMaxListeners(100);
 
@@ -58,8 +56,6 @@ export class KimLeSong {
 				);
 			}
 		});
-
-		this.clientWorkers.push(worker);
 	}
 }
 
