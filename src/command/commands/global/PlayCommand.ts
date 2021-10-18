@@ -173,8 +173,9 @@ export class PlayCommand extends AbstractGlobalCommand {
 			}
 
 			if (queue.length <= 0) {
-				State.guildIdToVoiceChannel.delete(state.guildId);
 				unsubscribe();
+				state.destroy();
+				State.guildIdToVoiceChannel.delete(state.guildId);
 
 				try {
 					guild.members.cache

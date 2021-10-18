@@ -26,6 +26,9 @@ export class VoiceChannelState {
 		ReturnType<typeof setTimeout>
 	>();
 
+	public scheduleDisconnectHandle: ReturnType<typeof setTimeout> | null =
+		null;
+
 	constructor({
 		client,
 		guildId,
@@ -48,5 +51,25 @@ export class VoiceChannelState {
 				?.channels.cache.get(this.id) as VoiceChannel,
 			this,
 		);
+	}
+
+	public destroy() {
+		const {
+			queue,
+			queuedPlaylists,
+			queuedPlaylistsTimeouts,
+			previousQueue,
+			scheduleDisconnectHandle,
+		} = this;
+
+		queue.splice(0, queue.length);
+		queuedPlaylists.splice(0, queuedPlaylists.length);
+		previousQueue.splice(0, previousQueue.length);
+
+		queuedPlaylistsTimeouts.forEach((timeout) => {
+			clearTimeout(timeout);
+		});
+
+		clearTimeout(scheduleDisconnectHandle!);
 	}
 }
