@@ -17,10 +17,24 @@ export class TimeUtility {
 		}`;
 	}
 
-	public static ms(hhmmss: string) {
+	public static msStrict(hhmmss: string) {
 		const hh = Number(hhmmss.substr(0, 2));
 		const mm = Number(hhmmss.substr(3, 2));
 		const ss = Number(hhmmss.substr(6, 2));
+
+		return hh * 60 * 60 * 1000 + mm * 60 * 1000 + ss * 60 * 1000;
+	}
+
+	public static ms(hhmmss: string) {
+		const hhmmssParts = hhmmss.split(':').map((number) => Number(number));
+
+		if (hhmmssParts.length < 3) {
+			hhmmssParts.unshift(
+				...new Array<number>(3 - hhmmssParts.length).fill(0),
+			);
+		}
+
+		const [hh, mm, ss] = hhmmssParts;
 
 		return hh * 60 * 60 * 1000 + mm * 60 * 1000 + ss * 60 * 1000;
 	}
