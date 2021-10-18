@@ -1,7 +1,7 @@
 import type { MessagePort } from 'worker_threads';
 import type { ContinuableResult, YoutubeMoosick } from 'youtube-moosick';
-import { IllegalStateError } from '../resources/errors/IllegalStateError.js';
 import { WalkUtility } from '../resources/utilities/WalkUtility.js';
+import { AbstractMoosickRequest } from './requests/AbstractMoosickRequest.js';
 import { MoosickContinuationRequest } from './requests/MoosickContinuationRequest.js';
 import { MoosickMethodRequest } from './requests/MoosickMethodRequest.js';
 import { MoosickContinuationResponse } from './responses/MoosickContinuationResponse.js';
@@ -21,9 +21,15 @@ export class MoosickResponder {
 
 	private async onMessage(message: any) {
 		if (
-			(message as MoosickContinuationRequest).name
-				=== MoosickContinuationRequest.name
-			&& this.assertType<MoosickContinuationRequest>(message)
+			(message as AbstractMoosickRequest)?.type
+			!== AbstractMoosickRequest.TYPE
+		) {
+			return;
+		}
+
+		if (
+			this.assertType<MoosickContinuationRequest>(message)
+			&& message.name === MoosickContinuationRequest.name
 		) {
 			const result = await this.requestIdToContinuable
 				.get(message.methodRequestId)
@@ -40,11 +46,8 @@ export class MoosickResponder {
 		}
 
 		if (
-			(message as MoosickMethodRequest<keyof YoutubeMoosick>).name
-				=== MoosickMethodRequest.name
-			&& this.assertType<MoosickMethodRequest<keyof YoutubeMoosick>>(
-				message,
-			)
+			this.assertType<MoosickMethodRequest<keyof YoutubeMoosick>>(message)
+			&& message.name === MoosickMethodRequest.name
 		) {
 			// @ts-expect-error message.params is the params of the method
 			const result = await this.ytm[message.method](...message.params);
@@ -55,13 +58,7 @@ export class MoosickResponder {
 			this.worker.postMessage(
 				new MoosickMethodResponse(result, message.id),
 			);
-
-			return;
 		}
-
-		throw new IllegalStateError(
-			'Worker requested with unknown request type',
-		);
 	}
 
 	private storeContinuable(
