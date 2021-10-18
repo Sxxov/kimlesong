@@ -11,3 +11,6 @@ export * from './PlaySkipCommand.js';
 export * from './LoopCommand.js';
 export * from './SkipToCommand.js';
 export * from './NowCommand.js';
+export * from './DeleteCommand.js';
+export * from './ScheduleDisconnectCommand.js';
+export * from './UnscheduleDisconnectCommand.js';
