@@ -84,12 +84,14 @@ export class CommandManagerSingleton {
 					if (
 						await TrafficRequester.request(
 							`${info.id}::${info.commandId}`,
+							info.clientsInChannel,
 						)
 					)
 						await reply(await command.getReply(info));
 				} else if (
 					await TrafficRequester.requestError(
 						`${info.id}::${info.commandId}`,
+						info.clientsInChannel,
 					)
 				)
 					await reply(await command.getReply(info));
@@ -102,6 +104,7 @@ export class CommandManagerSingleton {
 					// spoof message id to ensure it's unique
 					// this enables support for multiple commands per message
 					`${info.id}::${info.commandId}`,
+					info.clientsInChannel,
 				)
 			)
 				await reply(await command.getReply(info));
@@ -123,7 +126,12 @@ export class CommandManagerSingleton {
 				?.members.cache.get(info.userId!)?.voice.channelId;
 
 			if (voiceChannelId == null) {
-				if (await TrafficRequester.requestError(info.id))
+				if (
+					await TrafficRequester.requestError(
+						info.id,
+						info.clientsInChannel,
+					)
+				)
 					await reply({
 						embeds: [
 							Command.errorUser(
@@ -138,7 +146,12 @@ export class CommandManagerSingleton {
 			const targetVC = State.guildIdToVoiceChannel.get(info.guildId!);
 
 			if (targetVC == null || targetVC.id !== voiceChannelId) {
-				if (await TrafficRequester.requestError(info.id))
+				if (
+					await TrafficRequester.requestError(
+						info.id,
+						info.clientsInChannel,
+					)
+				)
 					await reply({
 						embeds: [
 							Command.errorUser(EmbedErrorCodes.NOT_PLAYING),
@@ -163,7 +176,7 @@ export class CommandManagerSingleton {
 			return;
 		}
 
-		if (await TrafficRequester.requestError(info.id))
+		if (await TrafficRequester.requestError(info.id, info.clientsInChannel))
 			await reply({
 				embeds: [
 					AbstractCommand.errorUser(

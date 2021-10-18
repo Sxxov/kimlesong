@@ -7,16 +7,24 @@ import { NotOkTrafficResponse } from './responses/NotOkTrafficResponse.js';
 import { OkTrafficResponse } from './responses/OkTrafficResponse.js';
 
 export class TrafficRequester {
-	public static async requestError(messageId: string) {
-		return this.request(messageId, TrafficRequestPriorities.LOW);
+	public static async requestError(
+		messageId: string,
+		clientsInChannel: number,
+	) {
+		return this.request(
+			messageId,
+			clientsInChannel,
+			TrafficRequestPriorities.LOW,
+		);
 	}
 
 	public static async request(
 		messageId: string,
+		clientsInChannel: number,
 		priority = TrafficRequestPriorities.HIGH,
 	) {
 		parentPort?.postMessage(
-			new PriorityTrafficRequest(messageId, priority),
+			new PriorityTrafficRequest(messageId, clientsInChannel, priority),
 		);
 
 		return new Promise<boolean>((resolve) => {

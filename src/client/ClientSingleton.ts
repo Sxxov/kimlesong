@@ -1,4 +1,13 @@
-import { Client, Guild, Intents, Interaction, Message } from 'discord.js';
+import {
+	Client,
+	DiscordAPIError,
+	DMChannel,
+	Guild,
+	GuildChannel,
+	Intents,
+	Interaction,
+	Message,
+} from 'discord.js';
 import assert from 'assert';
 import { Log } from '../log/Log.js';
 import JSONdb from 'simple-json-db';
@@ -14,12 +23,14 @@ import AbortController from 'abort-controller';
 import { MoosickApi } from '../moosick/MoosickApi.js';
 import SpotifyWebApi from 'spotify-web-api-node';
 import type { YoutubeMoosick } from 'youtube-moosick';
+import { ClientsInChannelCacheSingleton } from './ClientsInChannelCacheSingleton.js';
 
 export class ClientSingleton {
 	public static prefixDb = new JSONdb<string>('./db/prefix/v1.json');
 	public static client = new Client({
 		intents: [
 			Intents.FLAGS.GUILDS,
+			Intents.FLAGS.GUILD_MEMBERS,
 			Intents.FLAGS.GUILD_MESSAGES,
 			Intents.FLAGS.GUILD_VOICE_STATES,
 		],
@@ -37,6 +48,11 @@ export class ClientSingleton {
 	public static ytm = new MoosickApi() as YoutubeMoosick;
 	public static spotify = new SpotifyWebApi();
 	public static credentials: ClientCredentialsItem;
+	public static voiceChannelStateFactory = new VoiceChannelStateFactory(
+		this.client,
+		this.ytm,
+		this.spotify,
+	);
 
 	public static async register(
 		discordCredentials: ClientCredentialsItem,
@@ -67,12 +83,6 @@ export class ClientSingleton {
 		}, spotifyAuthResult.body.expires_in * 1000 - 5000);
 	}
 
-	public static voiceChannelStateFactory = new VoiceChannelStateFactory(
-		this.client,
-		this.ytm,
-		this.spotify,
-	);
-
 	@ClientSingleton.listener
 	public static async onReady() {
 		Log.info(`Logged in as ${this.client.user!.tag}!`);
@@ -88,7 +98,9 @@ export class ClientSingleton {
 	public static async onInteractionCreate(interaction: Interaction) {
 		if (interaction.isCommand()) {
 			await CommandManagerSingleton.run(
-				CommandBlueprintAdapter.adaptCommandInteraction(interaction),
+				await CommandBlueprintAdapter.adaptCommandInteraction(
+					interaction,
+				),
 			);
 		}
 
@@ -113,9 +125,9 @@ export class ClientSingleton {
 				/^(\w+|\?)( )?(.*)?$/.exec(content) ?? [];
 
 			await CommandManagerSingleton.run(
-				CommandBlueprintAdapter.adaptMessage(
+				await CommandBlueprintAdapter.adaptMessage(
 					message,
-					commandId.toLowerCase(),
+					commandId?.toLowerCase() ?? '',
 					argument,
 				),
 			);
@@ -138,6 +150,29 @@ export class ClientSingleton {
 		);
 
 		deleted.destroy();
+	}
+
+	@ClientSingleton.listener
+	public static async onChannelUpdate(
+		oldChannel: DMChannel | GuildChannel,
+		newChannel: DMChannel | GuildChannel,
+	) {
+		ClientsInChannelCacheSingleton.invalidate(oldChannel.id);
+
+		try {
+			await ClientsInChannelCacheSingleton.fetch(newChannel.id);
+		} catch (err: unknown) {
+			if (
+				err instanceof DiscordAPIError
+				&& err.message === 'Missing Access'
+			) {
+				ClientsInChannelCacheSingleton.invalidate(newChannel.id);
+
+				return;
+			}
+
+			throw err;
+		}
 	}
 
 	public static listener(target: ClientSingleton, propertyKey: string) {

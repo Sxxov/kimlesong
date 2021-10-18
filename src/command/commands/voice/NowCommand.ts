@@ -46,7 +46,7 @@ export class NowCommand extends AbstractVoiceCommand {
 		);
 
 		const info: CommandBlueprint =
-			CommandBlueprintAdapter.adaptButtonInteraction(
+			await CommandBlueprintAdapter.adaptButtonInteraction(
 				interaction,
 				NowCommand.id,
 			);

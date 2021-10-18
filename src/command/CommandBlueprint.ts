@@ -8,4 +8,5 @@ export interface CommandBlueprint {
 	commandId: string;
 	argument: string;
 	reply: Message['reply'];
+	clientsInChannel: number;
 }
