@@ -3,6 +3,4 @@ export abstract class AbstractTrafficRequest {
 	public type = AbstractTrafficRequest.TYPE;
 	public source = 'worker';
 	public name = this.constructor.name;
-
-	constructor(public messageId: string) {}
 }
