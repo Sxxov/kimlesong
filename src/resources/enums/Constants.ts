@@ -13,6 +13,7 @@ export const enum Constants {
 	YOUTUBE_WWW_HOSTNAME = 'www.youtube.com',
 	YOUTUBE_MUSIC_HOSTNAME = 'music.youtube.com',
 	YOUTUBE_PATHNAME_SONG = '/watch',
+	YOUTUBE_SHORT_HOSTNAME = 'youtu.be',
 	YOUTUBE_PATHNAME_PLAYLIST = '/playlist',
 
 	PLAYLIST_CONTENT_LIMIT = 100,

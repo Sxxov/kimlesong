@@ -65,6 +65,8 @@ export class QueueManager {
 				case Constants.YOUTUBE_WWW_HOSTNAME:
 				case Constants.YOUTUBE_HOSTNAME:
 					return this.createQueueFromYoutubeURL(url);
+				case Constants.YOUTUBE_SHORT_HOSTNAME:
+					return this.createQueueFromYoutubeShortURL(url);
 				default:
 					throw new UnsupportedURLError();
 			}
@@ -283,6 +285,12 @@ export class QueueManager {
 			default:
 				throw new UnsupportedURLError();
 		}
+	}
+
+	private async createQueueFromYoutubeShortURL(
+		url: URL,
+	): Promise<QueueArray<SyncQueueItem>> {
+		return this.createQueueFromYoutubeSongId(url.pathname.substring(1));
 	}
 
 	private async createQueueFromYoutubeURL(
